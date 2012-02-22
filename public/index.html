@@ -27,7 +27,7 @@
     <div id="inlineDoc"></div>
 
     <script type="text/javascript">
-      var stats, scene, renderer, camera;
+      var stats, scene, renderer, camera, me;
 
       if (!init()) {
         animate();
@@ -89,6 +89,7 @@
           var mesh = new THREE.Mesh(geometry, material);
           mesh.position.y = 0.5;
           scene.add(mesh);
+          me = mesh;
         })();
 
         (function setupGround() {
@@ -97,8 +98,24 @@
           var mesh = new THREE.Mesh(geometry, material);
           mesh.rotation.x = -90;
           scene.add(mesh);
-          mesh.on('mousedown', function(me, intersects) {
-            console.log(intersects);
+
+          $('body').on('click', function(ev) {
+            var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
+                mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
+                vector = new THREE.Vector3(mouseX, mouseY, 1);
+            (new THREE.Projector).unprojectVector(vector, camera);
+
+            vector.subSelf(camera.position).normalize()
+            var ray	= new THREE.Ray(camera.position, vector);
+            var intersects = ray.intersectObjects([mesh]);
+
+            // if there are no intersections, return now
+            if (intersects.length === 0) {
+              return;
+            }
+
+            me.position = intersects[0].point.clone();
+            me.position.y = 0.5;
           });
         })();
       }
