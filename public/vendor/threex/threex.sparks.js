@@ -16,6 +16,7 @@ THREEx.Sparks	= function(opts)
 	this._texture	= opts.texture	|| this._buildDefaultTexture();
 	var counter	= opts.counter	|| console.assert(false);
 	
+	// TODO replace this by objectpool.js
 	var vertexIndexPool = {
 		__pools: [],
 		// Get a new Vector
@@ -59,7 +60,7 @@ THREEx.Sparks	= function(opts)
 		valuesSize[v]	= 99;
 		valuesColor[v]	= new THREE.Color( 0x000000 );
 	}
-	
+
 	var material	= new THREE.ShaderMaterial( {
 		uniforms	: this._uniforms,
 		attributes	: this._attributes,
@@ -68,12 +69,13 @@ THREEx.Sparks	= function(opts)
 
 		blending	: THREE.AdditiveBlending,
 		depthWrite	: false,
+		//depthTest	: false,
 		transparent	: true
 	});
 
 	this._group	= new THREE.ParticleSystem( particles, material );
-	//this._group.dynamic		= true;
-	//this._group.sortParticles	= true;	// TODO is this needed ?	
+	this._group.dynamic		= true;
+	this._group.sortParticles	= true;	// TODO is this needed ?	
 
 	//// EMITTER STUFF
 
@@ -81,8 +83,14 @@ THREEx.Sparks	= function(opts)
 		var vertexIdx	= vertexIndexPool.get();
 		var target	= {
 			vertexIdx	: vertexIdx,
-			size		: function(value){ valuesSize[vertexIdx] = value;	},
-			color		: function(){ return valuesColor[vertexIdx];		}
+			size		: function(value){
+				if( value !== undefined )	valuesSize[vertexIdx] = value;
+				return valuesSize[vertexIdx];
+			},
+			color		: function(value){
+				if( value !== undefined )	valuesColor[vertexIdx]	= value;
+				return valuesColor[vertexIdx];
+			}
 		};
 		return target;
 	};
@@ -173,6 +181,7 @@ THREEx.Sparks.vertexShaderText	= [
 
 	"void main() {",
 		"vec4 mvPosition= modelViewMatrix * vec4( position, 1.0 );",
+		// FIXME is that the proper formula for size ? doesnt this depends on the fov ?
 		"gl_PointSize	= size * sizeRatio * ( 150.0 / length( mvPosition.xyz ) );",
 		"gl_Position	= projectionMatrix * mvPosition;",
 
@@ -220,18 +229,4 @@ THREEx.Sparks.prototype._buildDefaultTexture	= function(size)
 	texture.needsUpdate = true;
 	
 	return texture;
-}
-
-//////////////////////////////////////////////////////////////////////////////////
-//		Custom initializer TODO put it elsewhere			//
-//////////////////////////////////////////////////////////////////////////////////
-
-THREEx.Sparks.ColorSizeInitializer	= function(color, size){
-	this._color	= color;
-	this._size	= size;
-}
-THREEx.Sparks.ColorSizeInitializer.prototype.initialize	= function(emitter, particle)
-{
-	if( this._color !== undefined )	particle.target.color().copy(this._color);
-	if( this._size !== undefined )	particle.target.size(this._size);
 }

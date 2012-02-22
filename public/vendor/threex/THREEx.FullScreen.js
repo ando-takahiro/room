@@ -94,13 +94,12 @@ THREEx.FullScreen.bindKey	= function(opts){
 	}
 
 	// callback to handle keypress
-	var __bind	= function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-	var onKeyPress	= __bind(function(event){
+	var onKeyPress	= function(event){
 		// return now if the KeyPress isnt for the proper charCode
 		if( event.which !== charCode )	return;
 		// toggle fullscreen
 		toggle();
-	}, this);
+	}.bind(this);
 
 	// listen to keypress
 	// NOTE: for firefox it seems mandatory to listen to document directly
