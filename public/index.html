@@ -14,6 +14,7 @@
     <script src="vendor/threex/THREEx.FullScreen.js"></script>
     <script src="vendor/threex/THREEx.WindowResize.js"></script>
     <script src="vendor/jquery-1.7.1.min.js"></script>
+    <script src="vendor/Tween.js"></script>
     <script src="js/math.js"></script>
 
     <link  href="css/main.css" rel="stylesheet"/>
@@ -27,6 +28,7 @@
       var stats, scene, renderer, camera, me;
 
       if (!init()) {
+        TWEEN.start();
         animate();
       }
 
@@ -93,7 +95,8 @@
         (function setupGround() {
           var geometry = new THREE.PlaneGeometry(100, 100),
               material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
-              mesh = new THREE.Mesh(geometry, material);
+              mesh = new THREE.Mesh(geometry, material),
+              tween = new TWEEN.Tween(me.position);
 
           mesh.rotation.x = -0.5 * Math.PI;
           scene.add(mesh);
@@ -107,11 +110,12 @@
             projector.unprojectVector(vector, camera);
             vector.subSelf(camera.position).normalize();
 
-            me.position = math.intersectRayAndPlane(
-              camera.position, vector,
-              math.plane(
-                math.v3(0, 0.5, 0), math.v3(0, 1, 0)));
-            console.log(me.position);
+            tween.to(
+              math.intersectRayAndPlane(
+                camera.position, vector,
+                math.plane(
+                  math.v3(0, 0.5, 0), math.v3(0, 1, 0))),
+              100).start();
           });
         })();
       }
