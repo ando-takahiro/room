@@ -11,13 +11,10 @@
     <!-- https://github.com/mrdoob/stats.js -->
     <script src="vendor/three.js/Stats.js"></script>
 
-    <script src="vendor/threex/THREEx.screenshot.js"></script>
     <script src="vendor/threex/THREEx.FullScreen.js"></script>
     <script src="vendor/threex/THREEx.WindowResize.js"></script>
-    <script src="vendor/threex.dragpancontrols.js"></script>
     <script src="vendor/jquery-1.7.1.min.js"></script>
-		<script src="vendor/threex/threex.domevent.js"></script>
-		<script src="vendor/threex/threex.domevent.object3d.js"></script>
+    <script src="js/math.js"></script>
 
     <link  href="css/main.css" rel="stylesheet"/>
   </head>
@@ -77,45 +74,44 @@
           document.getElementById('inlineDoc').innerHTML	+= "- <i>f</i> for fullscreen";
         }
 
-			  // here you add your objects
-			  // - you will most likely replace this part by your own
-			  THREE.Object3D._threexDomEvent.camera(camera);
-
         // here you add your objects
         // - you will most likely replace this part by your own
         (function setupAvatar() {
-          var geometry = new THREE.PlaneGeometry(1, 1);
-          var material = new THREE.MeshBasicMaterial({map: THREE.ImageUtils.loadTexture('images/avatar0.png'), depthWrite: false, transparent: true});
-          var mesh = new THREE.Mesh(geometry, material);
+          var geometry = new THREE.PlaneGeometry(1, 1),
+              material = new THREE.MeshBasicMaterial({
+                map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
+                depthWrite: false,
+                transparent: true
+              }),
+              mesh = new THREE.Mesh(geometry, material);
+
           mesh.position.y = 0.5;
           scene.add(mesh);
           me = mesh;
         })();
 
         (function setupGround() {
-          var geometry = new THREE.PlaneGeometry(100, 100);
-          var material = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
-          var mesh = new THREE.Mesh(geometry, material);
-          mesh.rotation.x = -90;
+          var geometry = new THREE.PlaneGeometry(100, 100),
+              material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
+              mesh = new THREE.Mesh(geometry, material);
+
+          mesh.rotation.x = -0.5 * Math.PI;
           scene.add(mesh);
 
           $('body').on('click', function(ev) {
             var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
                 mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
-                vector = new THREE.Vector3(mouseX, mouseY, 1);
-            (new THREE.Projector).unprojectVector(vector, camera);
+                vector = new THREE.Vector3(mouseX, mouseY, -1),
+                projector = new THREE.Projector();
 
-            vector.subSelf(camera.position).normalize()
-            var ray	= new THREE.Ray(camera.position, vector);
-            var intersects = ray.intersectObjects([mesh]);
+            projector.unprojectVector(vector, camera);
+            vector.subSelf(camera.position).normalize();
 
-            // if there are no intersections, return now
-            if (intersects.length === 0) {
-              return;
-            }
-
-            me.position = intersects[0].point.clone();
-            me.position.y = 0.5;
+            me.position = math.intersectRayAndPlane(
+              camera.position, vector,
+              math.plane(
+                math.v3(0, 0.5, 0), math.v3(0, 1, 0)));
+            console.log(me.position);
           });
         })();
       }
