@@ -43,7 +43,3 @@ THREEx.WindowResize	= function(renderer, camera){
 		}
 	};
 }
-
-THREEx.WindowResize.bind	= function(renderer, camera){
-	return THREEx.WindowResize(renderer, camera);
-}
