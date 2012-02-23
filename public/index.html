@@ -85,7 +85,7 @@
         // - you will most likely replace this part by your own
         (function setupAvatar() {
           var geometry = new THREE.PlaneGeometry(1, 1);
-          var material = new THREE.MeshBasicMaterial({map: THREE.ImageUtils.loadTexture('images/avatar0.png')});
+          var material = new THREE.MeshBasicMaterial({map: THREE.ImageUtils.loadTexture('images/avatar0.png'), depthWrite: false, transparent: true});
           var mesh = new THREE.Mesh(geometry, material);
           mesh.position.y = 0.5;
           scene.add(mesh);
