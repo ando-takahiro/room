@@ -4,7 +4,17 @@ var express = require('express'),
     redis = require('redis').createClient(),
     assert = require('assert'),
     hat = require('hat'),
-    MEMBERS = 'room:default:members';
+    MEMBERS = 'room:default:members',
+    conf;
+
+if (process.env.ROOM_CONF) {
+  conf = require(process.env.ROOM_CONF);
+} else {
+  var dotCloudEnv = require('/home/dotcloud/environment.json');
+  conf = dotCloudEnv.ROOM_CONF;
+}
+
+redis.auth(conf.redis.password);
 
 redis.on('error', function(e) {
   // [Redis ERROR POLICY]
