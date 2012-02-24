@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "express": "*",
-    "socket.io": "*",
+    "socket.io": "0.8.7",
     "redis": "*",
     "hat": "*"
   },
