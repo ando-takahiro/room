@@ -1,33 +1,35 @@
 var express = require('express'),
     app = express.createServer(),
     io = require('socket.io').listen(app),
-    redis = require('redis').createClient(),
+    redis = require('redis'),
+    db,
     assert = require('assert'),
     hat = require('hat'),
-    MEMBERS = 'room:default:members',
-    conf;
+    MEMBERS = 'room:default:members';
 
 if (process.env.ROOM_CONF) {
-  conf = require(process.env.ROOM_CONF);
+  db = redis.createClient();
 } else {
-  var dotCloudEnv = require('/home/dotcloud/environment.json');
-  conf = {
-    redis: {
-      password: dotCloudEnv.DOTCLOUD_DATA_REDIS_PASSWORD
-    }
-  };
+  var dotCloudEnv = JSON.parse(
+    fs.readFileSync('/home/dotcloud/environment.json')
+  );
+
+  db = redis.createClient(
+    dotCloudEnv.DOTCLOUD_DATA_REDIS_PORT,
+    dotCloudEnv.DOTCLOUD_DATA_REDIS_HOST
+  );
+  db.auth(dotCloudEnv.DOTCLOUD_DATA_REDIS_PASSWORD);
 }
 
-redis.auth(conf.redis.password);
 
-redis.on('error', function(e) {
+db.on('error', function(e) {
   // [Redis ERROR POLICY]
   // * コマンド応答時のエラーは無視
   // * 当面はこのコールバックのみでログを吐き出す
   console.error('redis error:', e);
 });
 
-redis.on('ready', function() {
+db.on('ready', function() {
   app.use(express['static']('./public'));
 
   io.sockets.on('connection', function(socket) {
@@ -36,18 +38,18 @@ redis.on('ready', function() {
           id: id, x: Math.random(), y: 0, z: Math.random()
         };
 
-    redis.hgetall(MEMBERS, function(err, members) {
+    db.hgetall(MEMBERS, function(err, members) {
       // TODO: cache?
       // TODO: split request by members size
       socket.emit('everyone', {you: entity, members: members});
     });
 
-    redis.hset(MEMBERS, id, JSON.stringify(entity));
+    db.hset(MEMBERS, id, JSON.stringify(entity));
 
     socket.broadcast.emit('newcomer', entity);
 
     socket.on('disconnect', function() {
-      redis.hdel(MEMBERS, id);
+      db.hdel(MEMBERS, id);
       socket.broadcast.emit('leave', id);
     });
 
@@ -60,7 +62,7 @@ redis.on('ready', function() {
         entity.y = p.y;
         entity.z = p.z;
 
-        redis.hset(MEMBERS, id, JSON.stringify(entity));
+        db.hset(MEMBERS, id, JSON.stringify(entity));
         socket.broadcast.emit(
           'move',
           {
@@ -72,5 +74,5 @@ redis.on('ready', function() {
     });
   });
 
-  app.listen(8000);
+  app.listen(8080);
 });
