@@ -11,7 +11,11 @@ if (process.env.ROOM_CONF) {
   conf = require(process.env.ROOM_CONF);
 } else {
   var dotCloudEnv = require('/home/dotcloud/environment.json');
-  conf = dotCloudEnv.ROOM_CONF;
+  conf = {
+    redis: {
+      password: dotCloudEnv.DOTCLOUD_DATA_REDIS_PASSWORD
+    }
+  };
 }
 
 redis.auth(conf.redis.password);
@@ -25,12 +29,6 @@ redis.on('error', function(e) {
 
 redis.on('ready', function() {
   app.use(express['static']('./public'));
-
-  process.on('SIGINT', function() {
-    console.log('sigint');
-    redis.shutdown();
-    process.exit(1);
-  });
 
   io.sockets.on('connection', function(socket) {
     var id = hat(),
