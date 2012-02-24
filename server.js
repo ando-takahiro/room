@@ -5,7 +5,7 @@ var express = require('express'),
     db = redis.createClient(),
     assert = require('assert'),
     hat = require('hat'),
-    MEMBERS = 'room:default:members';
+    ROOM = 'room:default:room';
 
 db.on('error', function(e) {
   // [Redis ERROR POLICY]
@@ -15,6 +15,9 @@ db.on('error', function(e) {
 });
 
 db.on('ready', function() {
+  //TODO: 当面起動毎に部屋をクリア
+  db.del(ROOM);
+
   app.use(express['static']('./public'));
 
   io.sockets.on('connection', function(socket) {
@@ -23,18 +26,18 @@ db.on('ready', function() {
           id: id, x: Math.random(), y: 0, z: Math.random()
         };
 
-    db.hgetall(MEMBERS, function(err, members) {
+    db.hgetall(ROOM, function(err, members) {
       // TODO: cache?
       // TODO: split request by members size
       socket.emit('everyone', {you: entity, members: members});
     });
 
-    db.hset(MEMBERS, id, JSON.stringify(entity));
+    db.hset(ROOM, id, JSON.stringify(entity));
 
     socket.broadcast.emit('newcomer', entity);
 
     socket.on('disconnect', function() {
-      db.hdel(MEMBERS, id);
+      db.hdel(ROOM, id);
       socket.broadcast.emit('leave', id);
     });
 
@@ -47,7 +50,7 @@ db.on('ready', function() {
         entity.y = p.y;
         entity.z = p.z;
 
-        db.hset(MEMBERS, id, JSON.stringify(entity));
+        db.hset(ROOM, id, JSON.stringify(entity));
         socket.broadcast.emit(
           'move',
           {

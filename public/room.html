@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+  <head>
+    <title>learningthree.js boiler plate for three.js</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+    <script src="vendor/three.js/Three.js"></script>
+    <script src="vendor/three.js/Detector.js"></script>
+    <!-- https://github.com/mrdoob/stats.js -->
+    <script src="vendor/three.js/Stats.js"></script>
+
+    <script src="vendor/threex/THREEx.FullScreen.js"></script>
+    <script src="vendor/threex/THREEx.WindowResize.js"></script>
+    <script src="vendor/jquery-1.7.1.min.js"></script>
+    <script src="vendor/Tween.js"></script>
+    <script src="vendor/socket.io-client/socket.io.min.js"></script>
+    <script src="vendor/underscore-min.js"></script>
+    <script src="js/math.js"></script>
+    <script src="js/controller.js"></script>
+
+    <link  href="css/main.css" rel="stylesheet"/>
+  </head>
+  <body>
+    <!-- three.js container -->
+    <div id="container"></div>
+    <div id="inlineDoc"></div>
+
+    <script type="text/javascript">
+      var stats, scene, renderer, camera;
+
+      if (!init()) {
+        TWEEN.start();
+        animate();
+      }
+
+      // init the scene
+      function init(){
+        if (Detector.webgl) {
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,	// to get smoother output
+            preserveDrawingBuffer: true	// to allow screenshot
+          });
+          renderer.setClearColorHex(0xBBBBBB, 1);
+        // uncomment if webgl is required
+        //}else{
+        //	Detector.addGetWebGLMessage();
+        //	return true;
+        } else {
+          renderer	= new THREE.CanvasRenderer();
+        }
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // add Stats.js - https://github.com/mrdoob/stats.js
+        stats = new Stats();
+        stats.domElement.style.position	= 'absolute';
+        stats.domElement.style.bottom	= '0px';
+        document.body.appendChild( stats.domElement );
+
+        // create a scene
+        scene = new THREE.Scene();
+
+        // put a camera in the scene
+        camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
+        camera.position.set(0, 5, 5);
+        camera.lookAt(new THREE.Vector3());
+        scene.add(camera);
+
+        // transparently support window resize
+        THREEx.WindowResize.bind(renderer, camera);
+        // allow 'p' to make screenshot
+        //THREEx.Screenshot.bindKey(renderer);
+
+        // allow 'f' to go fullscreen where this feature is supported
+        if (THREEx.FullScreen.available()) {
+          THREEx.FullScreen.bindKey();		
+          document.getElementById('inlineDoc').innerHTML	+= "- <i>f</i> for fullscreen";
+        }
+
+        // here you add your objects
+        // - you will most likely replace this part by your own
+        /*(function setupAvatar() {
+          var geometry = new THREE.PlaneGeometry(1, 1),
+              material = new THREE.MeshBasicMaterial({
+                map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
+                depthWrite: false,
+                transparent: true
+              }),
+              mesh = new THREE.Mesh(geometry, material);
+
+          mesh.position.y = 0.5;
+          scene.add(mesh);
+          me = mesh;
+        })();*/
+
+        (function setupGround() {
+          var geometry = new THREE.PlaneGeometry(100, 100),
+              material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
+              mesh = new THREE.Mesh(geometry, material);
+
+          mesh.rotation.x = -0.5 * Math.PI;
+          mesh.position.y = -0.5;
+          scene.add(mesh);
+
+          controller.createClient(scene, function(client, localAvatar) {
+            $('body').on('click', function(ev) {
+              var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
+                  mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
+                  vector = new THREE.Vector3(mouseX, mouseY, -1),
+                  projector = new THREE.Projector();
+
+              projector.unprojectVector(vector, camera);
+              vector.subSelf(camera.position).normalize();
+
+              var moveTo = math.intersectRayAndPlane(
+                camera.position, vector,
+                math.plane(
+                  math.v3(0, 0.5, 0), math.v3(0, 1, 0)
+                )
+              );
+
+              localAvatar.move(moveTo);
+              client.move(moveTo);
+            });
+          });
+
+        })();
+      }
+
+      // animation loop
+      function animate() {
+        // loop on request animation loop
+        // - it has to be at the begining of the function
+        // - see details at http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+        requestAnimationFrame(animate);
+
+        // do the render
+        render();
+
+        // update stats
+        stats.update();
+      }
+
+      // render the scene
+      function render() {
+        // actually render the scene
+        renderer.render(scene, camera);
+      }
+    </script>
+  </body>
+</html>

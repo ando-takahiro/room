@@ -1,1 +1,1 @@
-ROOM_CONF=../room-dotcloud/conf.json node-dev app.js
+node-dev server.js
