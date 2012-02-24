@@ -23,6 +23,10 @@
   </head>
   <body>
     <!-- three.js container -->
+    <div id="menu">
+      login with: <a onclick="auth('github')" href='#'>github</a>
+    </div>
+    <div id='auth'></div>
     <div id="container"></div>
     <div id="inlineDoc"></div>
 
@@ -78,22 +82,6 @@
           document.getElementById('inlineDoc').innerHTML	+= "- <i>f</i> for fullscreen";
         }
 
-        // here you add your objects
-        // - you will most likely replace this part by your own
-        /*(function setupAvatar() {
-          var geometry = new THREE.PlaneGeometry(1, 1),
-              material = new THREE.MeshBasicMaterial({
-                map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
-                depthWrite: false,
-                transparent: true
-              }),
-              mesh = new THREE.Mesh(geometry, material);
-
-          mesh.position.y = 0.5;
-          scene.add(mesh);
-          me = mesh;
-        })();*/
-
         (function setupGround() {
           var geometry = new THREE.PlaneGeometry(100, 100),
               material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
@@ -146,6 +134,11 @@
       function render() {
         // actually render the scene
         renderer.render(scene, camera);
+      }
+
+      function auth(method) {
+        window.open('/auth/' + method, 'auth');
+        return false;
       }
     </script>
   </body>

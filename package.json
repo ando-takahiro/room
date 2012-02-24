@@ -13,9 +13,10 @@
   },
   "dependencies": {
     "express": "*",
-    "socket.io": "0.8.7",
+    "socket.io": "*",
     "redis": "*",
-    "hat": "*"
+    "hat": "*",
+    "authom": "*"
   },
   "devDependencies": {}
 }

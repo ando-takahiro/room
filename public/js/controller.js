@@ -52,7 +52,6 @@ var controller = (function() {
     socket.on('connect', function() {
 
       socket.on('everyone', function(message) {
-        console.log('everyone', message);
         var localAvatar = createAvatar(message.you, scene);
 
         if (onReadyMyAvatar) {
@@ -65,17 +64,14 @@ var controller = (function() {
       });
 
       socket.on('move', function(message) {
-        console.log('move', message);
         avatars[message.id].move(message.position);
       });
 
       socket.on('newcomer', function(message) {
-        console.log('newcomer', message);
         createAvatar(message, scene);
       });
 
       socket.on('leave', function(id) {
-        console.log('leave', id);
         avatars[id].leave();
         delete avatars[id];
       });

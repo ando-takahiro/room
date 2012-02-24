@@ -5,7 +5,13 @@ var express = require('express'),
     db = redis.createClient(),
     assert = require('assert'),
     hat = require('hat'),
-    ROOM = 'room:default:room';
+    authom = require('authom'),
+    ROOM = 'room:default:room',
+    github = authom.createServer({
+      service: 'github',
+      id: "38226d79050594da688e",
+      secret: "f90e848d53ddc2f5c3233a4623a08a3b84466841"
+    });
 
 db.on('error', function(e) {
   // [Redis ERROR POLICY]
@@ -18,7 +24,16 @@ db.on('ready', function() {
   //TODO: 当面起動毎に部屋をクリア
   db.del(ROOM);
 
+  authom.on('auth', function(req, res, data) {
+    console.log('authom-auth', req, res, data);
+  });
+
+  authom.on('error', function(req, res, data) {
+    console.log('authom-error', req, res, data);
+  });
+
   app.use(express['static']('./public'));
+  app.get('/auth/:service', authom.app);
 
   io.sockets.on('connection', function(socket) {
     var id = hat(),
