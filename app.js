@@ -39,9 +39,8 @@ redis.on('ready', function() {
     socket.broadcast.emit('newcomer', entity);
 
     socket.on('disconnect', function() {
-      redis.hdel(id, function() {
-        socket.broadcast.emit('leave', id);
-      });
+      redis.hdel(MEMBERS, id);
+      socket.broadcast.emit('leave', id);
     });
 
     socket.on('move', function(p) {
