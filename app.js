@@ -10,9 +10,10 @@ var express = require('express'),
 if (process.env.ROOM_CONF) {
   db = redis.createClient();
 } else {
-  var dotCloudEnv = JSON.parse(
-    fs.readFileSync('/home/dotcloud/environment.json')
-  );
+  var fs = require('fs'),
+      dotCloudEnv = JSON.parse(
+        fs.readFileSync('/home/dotcloud/environment.json')
+      );
 
   db = redis.createClient(
     dotCloudEnv.DOTCLOUD_DATA_REDIS_PORT,
