@@ -2,26 +2,10 @@ var express = require('express'),
     app = express.createServer(),
     io = require('socket.io').listen(app),
     redis = require('redis'),
-    db,
+    db = redis.createClient(),
     assert = require('assert'),
     hat = require('hat'),
     MEMBERS = 'room:default:members';
-
-if (process.env.ROOM_CONF) {
-  db = redis.createClient();
-} else {
-  var fs = require('fs'),
-      dotCloudEnv = JSON.parse(
-        fs.readFileSync('/home/dotcloud/environment.json')
-      );
-
-  db = redis.createClient(
-    dotCloudEnv.DOTCLOUD_DATA_REDIS_PORT,
-    dotCloudEnv.DOTCLOUD_DATA_REDIS_HOST
-  );
-  db.auth(dotCloudEnv.DOTCLOUD_DATA_REDIS_PASSWORD);
-}
-
 
 db.on('error', function(e) {
   // [Redis ERROR POLICY]
