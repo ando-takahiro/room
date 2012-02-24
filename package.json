@@ -1,0 +1,21 @@
+{
+  "author": "ANDO Takahiro",
+  "name": "room",
+  "description": "3d avatar chat",
+  "version": "0.0.4",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ando-takahiro/room.git"
+  },
+  "main": "app.js",
+  "engines": {
+    "node": "~0.6.1"
+  },
+  "dependencies": {
+    "express": "*",
+    "socket.io": "*",
+    "redis": "*",
+    "hat": "*"
+  },
+  "devDependencies": {}
+}
