@@ -1,16 +1,31 @@
 var controller = (function() {
   var exports = {},
       avatars = {},
-      MOVE_DURATION = 100;
+      MOVE_DURATION = 100,
+      USER_ID_KEY = 'userId';
 
+  exports.USER_ID_KEY = USER_ID_KEY;
+
+  //
+  // Avatar
+  //
   function Avatar(entity, scene) {
     var geometry = new THREE.PlaneGeometry(1, 1),
-        material = new THREE.MeshBasicMaterial({
-          map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
-          depthWrite: false,
-          transparent: true
-        }),
-        mesh = new THREE.Mesh(geometry, material);
+        material;
+
+    if (typeof(exports) === 'undefined') {
+      // browser
+      material = new THREE.MeshBasicMaterial({
+        map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
+        depthWrite: false,
+        transparent: true
+      });
+    } else {
+      // node(for unit test)
+      material = new THREE.MeshBasicMaterial();
+    }
+
+    var mesh = new THREE.Mesh(geometry, material);
 
     this.tween = new TWEEN.Tween(mesh.position);
     this.entity = _.clone(entity);
@@ -36,6 +51,9 @@ var controller = (function() {
     return avatar;
   }
 
+  //
+  // Client
+  //
   function Client(socket) {
     this.socket = socket;
   }
@@ -44,38 +62,51 @@ var controller = (function() {
     this.socket.emit('move', {x: position.x, y: position.y, z : position.z});
   };
 
-  exports.createClient = function(scene, onReadyMyAvatar) {
-    var socket = io.connect(),
-        id = 'unknwon',
-        client = new Client(socket);
+  //
+  // createClient
+  //
+  exports.createClient = function(socket, storage, scene, onReadyMyAvatar) {
+    var userId = storage.getItem(USER_ID_KEY);
 
-    socket.on('connect', function() {
+    // setup events
+    socket.on('welcome', function(message) {
+      var client = new Client(socket); 
 
-      socket.on('everyone', function(message) {
-        var localAvatar = createAvatar(message.you, scene);
+      if (!userId) {
+        storage.setItem(USER_ID_KEY, message.you.id);
+      }
 
-        if (onReadyMyAvatar) {
-          onReadyMyAvatar(client, localAvatar);
-        }
+      var localAvatar = createAvatar(message.you, scene);
 
-        _(message.members).each(function(entity) {
-          createAvatar(JSON.parse(entity), scene);
-        });
-      });
+      if (onReadyMyAvatar) {
+        onReadyMyAvatar(client, localAvatar);
+      }
 
-      socket.on('move', function(message) {
-        avatars[message.id].move(message.position);
-      });
-
-      socket.on('newcomer', function(message) {
-        createAvatar(message, scene);
-      });
-
-      socket.on('leave', function(id) {
-        avatars[id].leave();
-        delete avatars[id];
+      _(message.members).each(function(entity) {
+        createAvatar(JSON.parse(entity), scene);
       });
     });
+
+    socket.on('move', function(message) {
+      avatars[message.id].move(message.position);
+    });
+
+    socket.on('newcomer', function(message) {
+      createAvatar(message, scene);
+    });
+
+    socket.on('leave', function(id) {
+      avatars[id].leave();
+      delete avatars[id];
+    });
+
+    // do login
+    if (userId) {
+      socket.emit('login', userId);
+    } else {
+      socket.emit('login', '');
+      userId = null;
+    }
   };
 
   return exports;
