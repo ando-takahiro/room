@@ -1,35 +1,54 @@
 var express = require('express'),
     app = express.createServer(),
     io = require('socket.io').listen(app),
-    redis = require('redis'),
-    db = redis.createClient(),
     assert = require('assert'),
     hat = require('hat'),
     authom = require('authom'),
     ROOM = 'room:default:room',
     github = authom.createServer({
       service: 'github',
-      id: "38226d79050594da688e",
-      secret: "f90e848d53ddc2f5c3233a4623a08a3b84466841"
+      id: "f09d589b39a9b2960ee6",
+      secret: "885131891a0576c859267adc6343f86c918ffca3"
     });
 
 db.on('error', function(e) {
   // [Redis ERROR POLICY]
-  // * コマンド応答時のエラーは無視
-  // * 当面はこのコールバックのみでログを吐き出す
+  // * ignores error generall command process
+  // * for a while, treats error only here
   console.error('redis error:', e);
 });
 
 db.on('ready', function() {
-  //TODO: 当面起動毎に部屋をクリア
+  // for a while, clean room every boot.
   db.del(ROOM);
 
   authom.on('auth', function(req, res, data) {
     console.log('authom-auth', req, res, data);
+    var answer = Buffer(
+      "<html>" +
+        "<body>" +
+          "<div style='font: 300% sans-serif'>You are " + data.id + " on " + data.service + ".</div>" +
+          "<pre><code>" + JSON.stringify(data, null, 2) + "</code></pre>" +
+        "</body>" +
+      "</html>"
+    );
+    res.writeHead(200, {
+      "Content-Type": "text/html",
+      "Content-Length": answer.length
+    });
+    res.end(answer);
   });
 
   authom.on('error', function(req, res, data) {
     console.log('authom-error', req, res, data);
+    var answer = Buffer("An error occurred: " + JSON.stringify(data));
+
+    res.writeHead(500, {
+      "Content-Type": "text/plain",
+      "Content-Length": answer.length
+    });
+
+    res.end(answer);
   });
 
   app.use(express['static']('./public'));
