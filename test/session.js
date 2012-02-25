@@ -1,5 +1,6 @@
 var expect = require('expect.js'),
     browser = require('./browser'),
+    sinon = require('sinon'),
     util = require('util'),
     EventEmitter = require('events').EventEmitter;
 
@@ -79,6 +80,13 @@ describe('controller.createClient', function() {
   beforeEach(function() {
     sock = MockSocket.makePair();
     storage = new Storage();
+    sinon.stub(THREE.ImageUtils, 'loadTexture', function() {
+      return null;
+    });
+  });
+
+  afterEach(function() {
+    THREE.ImageUtils.loadTexture.restore();
   });
 
   it('uses "" at first time login', function(done) {

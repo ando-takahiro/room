@@ -11,21 +11,12 @@ var controller = (function() {
   //
   function Avatar(entity, scene) {
     var geometry = new THREE.PlaneGeometry(1, 1),
-        material;
-
-    if (typeof(exports) === 'undefined') {
-      // browser
-      material = new THREE.MeshBasicMaterial({
-        map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
-        depthWrite: false,
-        transparent: true
-      });
-    } else {
-      // node(for unit test)
-      material = new THREE.MeshBasicMaterial();
-    }
-
-    var mesh = new THREE.Mesh(geometry, material);
+        material = new THREE.MeshBasicMaterial({
+          map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
+          depthWrite: false,
+          transparent: true
+        }),
+        mesh = new THREE.Mesh(geometry, material);
 
     this.tween = new TWEEN.Tween(mesh.position);
     this.entity = _.clone(entity);

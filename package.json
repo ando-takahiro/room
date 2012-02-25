@@ -15,8 +15,11 @@
     "express": "*",
     "socket.io": "*",
     "redis": "*",
-    "hat": "*",
-    "authom": "*"
+    "hat": "*"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "mocha": "*",
+    "expect.js": "*",
+    "sinon": "*",
+  }
 }
