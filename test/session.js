@@ -2,7 +2,7 @@ var expect = require('expect.js'),
     browser = require('./browser'),
     sinon = require('sinon'),
     util = require('util'),
-    room = require('room'),
+    room = require('../src/room'),
     EventEmitter = require('events').EventEmitter;
 
 browser.load('public/vendor/Tween.js');

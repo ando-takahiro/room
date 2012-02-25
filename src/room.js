@@ -99,6 +99,7 @@ exports.restore = function(sockets, db) {
             loadEntity(requestedId, socket, db);
           }
         });
+      }
     });
   });
 };
