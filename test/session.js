@@ -3,7 +3,8 @@ var expect = require('expect.js'),
     sinon = require('sinon'),
     util = require('util'),
     room = require('../src/room'),
-    EventEmitter = require('events').EventEmitter;
+    EventEmitter = require('events').EventEmitter,
+    redis_mock = require('./redis_mock');
 
 browser.load('public/vendor/Tween.js');
 browser.load('public/js/controller.js');
@@ -152,5 +153,29 @@ describe('controller.createClient', function() {
     );
 
     sock.server.emit('connect');
+  });
+});
+
+describe('login in room', function() {
+  it('creates new account with ""', function(done) {
+    var sockets = new EventEmitter(), pair = MockSocket.makePair();
+
+    room.restore(sockets, redis_mock.createClient());
+
+    sockets.on('connection', function() {
+      pair.client.on('welcome', function(message) {
+        expect(message.you.id).to.be.a('string');
+        expect(message.you.x).to.be.a('number');
+        expect(message.you.y).to.be.a('number');
+        expect(message.you.z).to.be.a('number');
+        expect(message.you.avatar).to.be('images/avatar0.png');
+        expect(message.members).to.be.a('object');
+        done();
+      });
+
+      pair.client.emit('login', '');
+    });
+
+    sockets.emit('connection', pair.server);
   });
 });

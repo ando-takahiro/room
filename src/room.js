@@ -1,9 +1,8 @@
 var hat = require('hat'),
-    ACCOUNT_FORMAT = 'account:%s:entity',
     ROOM = 'room:default:room';
 
 function accountKey(id) {
-  return util.format(ACCOUNT_FORMAT, id);
+  return 'account:' + id + ':entity';
 }
 
 function joinRoom(entity, socket, db) {
@@ -12,7 +11,7 @@ function joinRoom(entity, socket, db) {
   db.hgetall(ROOM, function(err, members) {
     // TODO: cache?
     // TODO: split request by members size
-    socket.emit('welcome', {you: entity, members: members});
+    socket.emit('welcome', {you: entity, members: members || {}});
   });
 
   socket.broadcast.emit('newcomer', entity);
@@ -44,7 +43,7 @@ function joinRoom(entity, socket, db) {
   });
 }
 
-function newEntity(id, socket, db) {
+function newEntity(socket, db) {
   var id = hat(),
       entity = {
         id: id,
@@ -84,16 +83,15 @@ exports.restore = function(sockets, db) {
   db.del(ROOM);
 
   sockets.on('connection', function(socket) {
-    var id;
     socket.on('login', function(requestedId) {
-      if (requestId === '') {
+      if (requestedId === '') {
         // new client
-        newEntity(requestedId, socket, db);
+        newEntity(socket, db);
       } else {
         db.hget(ROOM, requestedId, function(err, entityStr) {
           if (entityStr) {
             // another client in same browser
-            newEntity(requestedId, socket, db);
+            newEntity(socket, db);
           } else {
             // returned client
             loadEntity(requestedId, socket, db);

@@ -237,6 +237,10 @@ MockClient.prototype._multiPairedCommand = function(args, worker, reporter) {
   }
 };
 
+MockClient.prototype.hset = function(key, field, value) {
+  return this.hmset(key, field, value);
+};
+
 MockClient.prototype.hmset = function(key) {
   this._multiPairedCommand(
     arguments,
@@ -490,6 +494,7 @@ function revisionPolicy(funcName, orgFunc) {
   case 'incrby':
   case 'rpush':
   case 'sadd':
+  case 'hset':
   case 'hmset':
   case 'zadd':
   case 'expire':
