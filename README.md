@@ -4,7 +4,7 @@
 
 It runs on [node-ninja](http://room.node-ninja.com:8080/).
 
-This is an experimental 3d virtual space using node.js, webgl, redis, socket.io. Our goal is a [Minecraft](http://www.minecraft.net/) :)
+This is my personal project. This provides an experimental 3d virtual space using node.js, webgl, redis, socket.io. My goal is [UGC](http://en.wikipedia.org/wiki/User-generated_content) web space, for example [Minecraft](http://www.minecraft.net/) :)
 
 ## How to run
 
@@ -21,4 +21,4 @@ MIT
 
 ## based on
 
- * [threejsboilerplate](http://jeromeetienne.github.com/threejsboilerplatebuilder/)
+[threejsboilerplate](http://jeromeetienne.github.com/threejsboilerplatebuilder/)
