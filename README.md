@@ -1,10 +1,14 @@
 # room - a 3d virtual space
 
-## abstract
+## Abstract
 
 It runs on [node-ninja](http://room.node-ninja.com:8080/).
 
 This is my personal project. This provides an experimental 3d virtual space using node.js, webgl, redis, socket.io. My goal is [UGC](http://en.wikipedia.org/wiki/User-generated_content) web space, for example [Minecraft](http://www.minecraft.net/) :)
+
+## Details
+
+Technical details will be writen [here](https://github.com/ando-takahiro/blog/) in Japanese.
 
 ## How to run
 
@@ -15,10 +19,10 @@ This is my personal project. This provides an experimental 3d virtual space usin
  1. sh scripts/dev.sh
  1. access http://localhost:8080/
 
-## lisence
+## Lisence
 
 MIT
 
-## based on
+## Based on
 
 [threejsboilerplate](http://jeromeetienne.github.com/threejsboilerplatebuilder/)
