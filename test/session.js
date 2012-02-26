@@ -75,7 +75,7 @@ Storage.prototype.__defineGetter__('length', function () {
 //
 // tests
 //
-describe('controller.createClient', function() {
+describe('controller.login', function() {
   var sock, storage;
 
   beforeEach(function() {
@@ -106,12 +106,12 @@ describe('controller.createClient', function() {
 
     expect(storage.getItem(controller.USER_ID_KEY)).to.be(null);
 
-    controller.createClient(
+    controller.login(
       sock.client,
       storage,
       new THREE.Scene(),
-      function(client, localAvatar) {
-        expect(client).not.to.be(null);
+      new EventEmitter(),
+      function(localAvatar) {
         expect(storage.getItem('userId')).to.be(localAvatar.entity.id);
         var mesh = localAvatar.mesh;
         expect(mesh.position.x).to.be(0.1);
@@ -140,12 +140,12 @@ describe('controller.createClient', function() {
 
     storage.setItem(controller.USER_ID_KEY, 'helloworld');
 
-    controller.createClient(
+    controller.login(
       sock.client,
       storage,
       new THREE.Scene(),
-      function(client, localAvatar) {
-        expect(client).not.to.be(null);
+      new EventEmitter(),
+      function(localAvatar) {
         expect(storage.getItem('userId')).to.be('helloworld');
         expect(storage.getItem('userId')).to.be(localAvatar.entity.id);
         done();
@@ -218,7 +218,7 @@ describe('login in room', function() {
         entityStr = JSON.stringify(entity);
 
     db.set('account:userId0:entity', entityStr);
-    db.hset(room.KEY, entity.id, entityStr);
+    db.hset(room.MEMBERS_KEY, entity.id, entityStr);
 
     sockets.on('connection', function() {
       pair.client.on('welcome', function(message) {
@@ -230,5 +230,117 @@ describe('login in room', function() {
     });
 
     sockets.emit('connection', pair.server);
+  });
+
+  it('sends "hear" event if chat logs existing', function(done) {
+    db.rpush(room.CHAT_KEY, 'aaa', 'bbb', 'ccc');
+
+    sockets.on('connection', function() {
+      pair.client.on('hear', function(msgs) {
+        expect(msgs).to.eql(['aaa', 'bbb', 'ccc']);
+        done();
+      });
+
+      pair.client.emit('login', '');
+    });
+
+    sockets.emit('connection', pair.server);
+  });
+});
+
+describe('room events', function() {
+  var sockets, pair, db, clock;
+
+  beforeEach(function() {
+    sockets = new EventEmitter();
+    pair = MockSocket.makePair();
+    db = redis_mock.createClient();
+    room.restore(sockets, db);
+    clock = sinon.useFakeTimers();
+  });
+
+  after(function() {
+    clock.restore();
+  });
+
+  describe('say', function() {
+    it('records message in db and broadcast', function(done) {
+      clock.tick(123);
+      var id;
+      pair.server.broadcast.on('hear', function(msgs) {
+        expect(msgs).to.have.length(1);
+
+        var parsed = JSON.parse(msgs[0]);
+        expect(parsed).to.be.eql({
+          user: id,
+          message: 'hello world',
+          date: 123
+        });
+
+        expect(db.db[room.CHAT_KEY]).to.eql(msgs);
+        done();
+      });
+
+      sockets.on('connection', function() {
+        pair.client.on('welcome', function(message) {
+          id = message.you.id;
+          pair.client.emit('say', 'hello world');
+        });
+
+        pair.client.emit('login', '');
+      });
+
+      sockets.emit('connection', pair.server);
+    });
+  });
+
+  describe('changeName', function() {
+    it('change name and broadcast', function(done) {
+      var id;
+      pair.server.broadcast.on('changeName', function(msg) {
+        expect(msg).to.eql({user: id, name: 'foobared'});
+        var entity = JSON.parse(db.db[room.MEMBERS_KEY][id]);
+        expect(entity.name).to.be('foobared');
+        expect(entity.isInitialName).to.be(false);
+        done();
+      });
+
+      sockets.on('connection', function() {
+        pair.client.on('welcome', function(message) {
+          id = message.you.id;
+          expect(message.you.isInitialName).to.be(true);
+          pair.client.emit('changeName', 'foobared');
+        });
+
+        pair.client.emit('login', '');
+      });
+
+      sockets.emit('connection', pair.server);
+    });
+  });
+
+  describe('changeAvatar', function() {
+    it('change avatar and broadcast', function(done) {
+      var id;
+      pair.server.broadcast.on('changeAvatar', function(msg) {
+        expect(msg).to.eql({user: id, avatar: 'dummy-url'});
+        var entity = JSON.parse(db.db[room.MEMBERS_KEY][id]);
+        expect(entity.avatar).to.be('dummy-url');
+        expect(entity.isInitialAvatar).to.be(false);
+        done();
+      });
+
+      sockets.on('connection', function() {
+        pair.client.on('welcome', function(message) {
+          id = message.you.id;
+          expect(message.you.isInitialAvatar).to.be(true);
+          pair.client.emit('changeAvatar', 'dummy-url');
+        });
+
+        pair.client.emit('login', '');
+      });
+
+      sockets.emit('connection', pair.server);
+    });
   });
 });

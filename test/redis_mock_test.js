@@ -175,6 +175,65 @@ function commandSpecs(it) {
     });
   });
 
+  describe('lpush', function() {
+    it('pushes string into front', function(done, client) {
+      client.del('a');
+      client.lpush('a', 'hello', 'world', function(err, replies) {
+        expect(replies).to.be(2);
+        client.lrange('a', 0, -1, function(err, replies) {
+          expect(replies).to.eql(['world', 'hello']);
+          done();
+        });
+      });
+    });
+
+    it('fails when key is not list', function(done, client) {
+      client.del('b');
+      client.set('b', 100);
+      client.lpush('b', 'hello', function(err, replies) {
+        expect(err instanceof Error).to.be(true);
+        expect(replies).to.be(undefined);
+        done();
+      });
+    });
+  });
+
+  describe('ltrim', function() {
+    it('trims specified range', function(done, client) {
+      client.del('a');
+      client.rpush('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+      client.ltrim('a', 1, 3, function(err, replies) {
+        expect(replies).to.be('OK');
+        client.lrange('a', 0, -1, function(err, replies) {
+          expect(replies).to.eql(['1', '2', '3']);
+          done();
+        });
+      });
+    });
+
+    it('accepts -1 as tail', function(done, client) {
+      client.del('a');
+      client.rpush('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+      client.ltrim('a', 8, -1, function(err, replies) {
+        expect(replies).to.be('OK');
+        client.lrange('a', 0, -1, function(err, replies) {
+          expect(replies).to.eql(['8', '9']);
+          done();
+        });
+      });
+    });
+
+    it('fails when key is not list', function(done, client) {
+      client.del('a');
+      client.set('a', 100);
+      client.ltrim('a', 1, 3, function(err, replies) {
+        expect(err instanceof Error).to.be(true);
+        expect(replies).to.be(undefined);
+        done();
+      });
+    });
+  });
+
   describe('lrange', function() {
     it('gets elements of range', function(done, client) {
       client.del('a');
