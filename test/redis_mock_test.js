@@ -198,6 +198,42 @@ function commandSpecs(it) {
     });
   });
 
+  describe('ltrim', function() {
+    it('trims specified range', function(done, client) {
+      client.del('a');
+      client.rpush('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+      client.ltrim('a', 1, 3, function(err, replies) {
+        expect(replies).to.be('OK');
+        client.lrange('a', 0, -1, function(err, replies) {
+          expect(replies).to.eql(['1', '2', '3']);
+          done();
+        });
+      });
+    });
+
+    it('accepts -1 as tail', function(done, client) {
+      client.del('a');
+      client.rpush('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+      client.ltrim('a', 8, -1, function(err, replies) {
+        expect(replies).to.be('OK');
+        client.lrange('a', 0, -1, function(err, replies) {
+          expect(replies).to.eql(['8', '9']);
+          done();
+        });
+      });
+    });
+
+    it('fails when key is not list', function(done, client) {
+      client.del('a');
+      client.set('a', 100);
+      client.ltrim('a', 1, 3, function(err, replies) {
+        expect(err instanceof Error).to.be(true);
+        expect(replies).to.be(undefined);
+        done();
+      });
+    });
+  });
+
   describe('lrange', function() {
     it('gets elements of range', function(done, client) {
       client.del('a');

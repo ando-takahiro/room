@@ -143,32 +143,27 @@ MockClient.prototype.rpush = function() {
     },
     arguments
   );
-  //var list = this.db[key];
-  //if (list !== null && list !== undefined) {
-  //  if (!(list instanceof Array)) {
-  //    (arguments[arguments.length - 1])(new Error('ERR Operation against a key holding the wrong kind of value'));
-  //    return;
-  //  }
-  //} else {
-  //  list = this.db[key] = [];
-  //}
-
-  //this._repeatCommand(
-  //  Array.prototype.slice.call(arguments, 1),
-  //  function(v) {
-  //    list.push(String(v));
-  //  },
-  //  function() {
-  //    return list.length;
-  //  }
-  //);
-
-  //this.notify(key);
 };
 
 function normalizeIndex(idx, len) {
   return idx >= 0 ? idx : len + idx;
 }
+
+MockClient.prototype.ltrim = function(key, first, last, callback) {
+  var val = this.db[key];
+  if (val !== null && val !== undefined) {
+    if (!(val instanceof Array)) {
+      callback(new Error('Error: ERR Operation against a key holding the wrong kind of value'));
+      return;
+    }
+    first = normalizeIndex(first, val.length);
+    last = normalizeIndex(last, val.length);
+    this.db[key] = val.slice(first, last + 1);
+    callback(null, 'OK');
+  } else {
+    callback(new Error(), null);
+  }
+};
 
 MockClient.prototype.lrange = function(key, first, last, callback) {
   var val = this.db[key];
@@ -555,6 +550,7 @@ function revisionPolicy(funcName, orgFunc) {
   case 'setex':
   case 'incrby':
   case 'lpush':
+  case 'ltrim':
   case 'rpush':
   case 'sadd':
   case 'hset':
