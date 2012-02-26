@@ -18,6 +18,7 @@
     <script src="js/math.js"></script>
     <script src="js/controller.js"></script>
     <script src="js/events.js"></script>
+    <script src="js/logging.js"></script>
 
     <link  href="css/main.css" rel="stylesheet"/>
   </head>
@@ -64,42 +65,7 @@
       //
       // logger
       //
-      function Logger() {
-        this.logs = [];
-      }
-
-      Logger.prototype.restore = function(id, dom) {
-        this.id = id;
-        this.dom = dom;
-        this.dom.html('');
-        for (var i = 0; i < this.logs.length; i++) {
-          this._show(this.logs[i]);
-        }
-      };
-
-      Logger.prototype._show = function(msg) {
-        this.dom.prepend(Mustache.to_html($('#log-template').html(), msg));
-      };
-
-      Logger.prototype.push = function(msg) {
-        if (typeof msg === 'string') {
-          msg = {message: msg};
-        } else {
-          msg = _.clone(msg);
-        }
-        _.defaults(msg, {
-          date: +new Date(),
-          user: this.id
-        });
-
-        this.logs.push(msg);
-
-        if (this.dom) {
-          this._show(msg);
-        }
-      };
-      
-      var _logger = new Logger();
+      var _logger = new logging.Logger();
       function log(msg) {
         _logger.push(msg);
       }
@@ -110,7 +76,6 @@
       //
       // setuppers
       //
-
       function setupEnv() {
         if (Detector.webgl) {
           renderer = new THREE.WebGLRenderer({
