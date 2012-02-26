@@ -12,7 +12,7 @@ var controller = (function() {
   function Avatar(entity, scene) {
     var geometry = new THREE.PlaneGeometry(1, 1),
         material = new THREE.MeshBasicMaterial({
-          map: THREE.ImageUtils.loadTexture('images/avatar0.png'),
+          map: THREE.ImageUtils.loadTexture(entity.avatar),
           depthWrite: false,
           transparent: true
         }),

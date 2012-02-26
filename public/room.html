@@ -23,10 +23,6 @@
   </head>
   <body>
     <!-- three.js container -->
-    <div id="menu">
-      login with: <a onclick="auth('github')" href='#'>github</a>
-    </div>
-    <div id='auth'></div>
     <div id="container"></div>
     <div id="inlineDoc"></div>
 
@@ -91,7 +87,7 @@
           mesh.position.y = -0.5;
           scene.add(mesh);
 
-          controller.createClient(scene, function(client, localAvatar) {
+          controller.createClient(io.connect(), localStorage, scene, function(client, localAvatar) {
             $('body').on('click', function(ev) {
               var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
                   mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
@@ -134,11 +130,6 @@
       function render() {
         // actually render the scene
         renderer.render(scene, camera);
-      }
-
-      function auth(method) {
-        window.open('/auth/' + method, 'auth');
-        return false;
       }
     </script>
   </body>

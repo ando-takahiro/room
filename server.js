@@ -1,4 +1,5 @@
-var app = require('express').createServer(),
+var express = require('express'),
+    app = express.createServer(),
     io = require('socket.io').listen(app),
     db = require('redis').createClient(),
     room = require('./src/room');
