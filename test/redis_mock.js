@@ -237,8 +237,16 @@ MockClient.prototype._multiPairedCommand = function(args, worker, reporter) {
   }
 };
 
-MockClient.prototype.hset = function(key, field, value) {
-  return this.hmset(key, field, value);
+MockClient.prototype.hset = function(key, field, value, callback) {
+  var alreadyExists = 0;
+  this._multiPairedCommand(
+    arguments,
+    function(hash, k, v) {
+      alreadyExists = k in hash ? 0 : 1;
+      hash[k] = v;
+    },
+    function() {return alreadyExists;}
+  );
 };
 
 MockClient.prototype.hmset = function(key) {
@@ -249,6 +257,19 @@ MockClient.prototype.hmset = function(key) {
     },
     function() {return 'OK';}
   );
+};
+
+MockClient.prototype.hget = function(key, field, callback) {
+  var val = this.db[key];
+  if (val) {
+    if (val.constructor === Object) {
+      callback(null, field in val ? val[field] : null);
+    } else {
+      callback(new Error(), null);
+    }
+  } else {
+    callback(null, null);
+  }
 };
 
 MockClient.prototype.hgetall = function(key, callback) {
@@ -467,6 +488,7 @@ function revisionPolicy(funcName, orgFunc) {
   case 'get':
   case 'lrange':
   case 'smembers':
+  case 'hget':
   case 'hgetall':
   case 'zrange':
   case 'zcard':

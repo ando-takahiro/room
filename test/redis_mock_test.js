@@ -265,6 +265,80 @@ function commandSpecs(it) {
     });
   });
 
+  describe('hset', function() {
+    it('sets value into hash', function(done, client) {
+      client.del('x');
+      client.hset('x', 'a', 'b', function(err, replies) {
+        expect(err).to.be(null);
+        expect(replies).to.be(1);
+        client.hgetall('x', function(err, replies) {
+          expect(replies).to.eql({
+            a: 'b'
+          });
+          client.hset('x', 'a', 'c', function(err, replies) {
+            expect(err).to.be(null);
+            expect(replies).to.be(0); // means updated
+            client.hgetall('x', function(err, replies) {
+              expect(replies).to.eql({
+                a: 'c'
+              });
+              done();
+            });
+          });
+        });
+      });
+    });
+
+    it('fails if key is not hash', function(done, client) {
+      client.del('x');
+      client.rpush('x', 'hello');
+      client.hset('x', 'a', 'b', function(err, replies) {
+        expect(err).to.be.a(Error);
+        done();
+      });
+    });
+  });
+
+  describe('hget', function() {
+    it('gets value of field in hash', function(done, client) {
+      client.del('x');
+      client.hset('x', 'a', 'b');
+      client.hget('x', 'a', function(err, val) {
+        expect(err).to.be(null);
+        expect(val).to.eql('b');
+        done();
+      });
+    });
+
+    it('returns null if field is not in hash', function(done, client) {
+      client.del('x');
+      client.hset('x', 'n', 'm');
+      client.hget('x', 'a', function(err, val) {
+        expect(err).to.be(null);
+        expect(val).to.be(null);
+        done();
+      });
+    });
+
+    it('returns null if key is not exist', function(done, client) {
+      client.del('x');
+      client.hget('x', 'a', function(err, val) {
+        expect(err).to.be(null);
+        expect(val).to.be(null);
+        done();
+      });
+    });
+
+    it('fails if key exists and is not hash', function(done, client) {
+      client.del('x');
+      client.rpush('x', 'hello');
+      client.hget('x', 'a', function(err, replies) {
+        expect(err).to.be.a(Error);
+        done();
+      });
+    });
+  });
+
   describe('hmset', function() {
     it('sets multi values at once into hash', function(done, client) {
       client.del('x');

@@ -60,7 +60,7 @@ function newEntity(socket, db) {
 }
 
 function loadEntity(id, socket, db) {
-  db.get(accountKey(id), function(accountStr) {
+  db.get(accountKey(id), function(err, accountStr) {
     if (accountStr) {
       joinRoom(JSON.parse(accountStr), socket, db);
     } else {
@@ -71,7 +71,7 @@ function loadEntity(id, socket, db) {
 
 // Entities was left abandoned in the ROOM when deploy, so recover by this
 function recoverEntitiesFromRoom(db) {
-  db.hgetall(ROOM, function(kvs) {
+  db.hgetall(ROOM, function(err, kvs) {
     for (var id in kvs) {
       db.set(accountKey(id), kvs[id]);
     }

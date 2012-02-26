@@ -157,11 +157,16 @@ describe('controller.createClient', function() {
 });
 
 describe('login in room', function() {
+  var sockets, pair, db;
+
+  beforeEach(function() {
+    sockets = new EventEmitter();
+    pair = MockSocket.makePair();
+    db = redis_mock.createClient();
+    room.restore(sockets, db);
+  });
+
   it('creates new account with ""', function(done) {
-    var sockets = new EventEmitter(), pair = MockSocket.makePair();
-
-    room.restore(sockets, redis_mock.createClient());
-
     sockets.on('connection', function() {
       pair.client.on('welcome', function(message) {
         expect(message.you.id).to.be.a('string');
@@ -174,6 +179,29 @@ describe('login in room', function() {
       });
 
       pair.client.emit('login', '');
+    });
+
+    sockets.emit('connection', pair.server);
+  });
+
+  it('loads account if existing user id', function(done) {
+    var entity = {
+      id: 'userId0',
+      x: 123,
+      y: 456,
+      z: 789,
+      avatar: 'avatar123.png'
+    };
+
+    db.set('account:userId0:entity', JSON.stringify(entity));
+
+    sockets.on('connection', function() {
+      pair.client.on('welcome', function(message) {
+        expect(message.you).to.eql(entity);
+        done();
+      });
+
+      pair.client.emit('login', 'userId0');
     });
 
     sockets.emit('connection', pair.server);
