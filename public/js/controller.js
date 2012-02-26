@@ -61,21 +61,28 @@ var controller = (function() {
 
     // setup events
     socket.on('welcome', function(message) {
-      var client = new Client(socket); 
+      if (typeof message === 'string') {
+        // invalid account. perhaps db was cleared.
+        storage.setItem(USER_ID_KEY, '');
+        socket.emit('login', '');
+        userId = null;
+      } else {
+        var client = new Client(socket); 
 
-      if (!userId) {
-        storage.setItem(USER_ID_KEY, message.you.id);
+        if (!userId) {
+          storage.setItem(USER_ID_KEY, message.you.id);
+        }
+
+        var localAvatar = createAvatar(message.you, scene);
+
+        if (onReadyMyAvatar) {
+          onReadyMyAvatar(client, localAvatar);
+        }
+
+        _(message.members).each(function(entity) {
+          createAvatar(JSON.parse(entity), scene);
+        });
       }
-
-      var localAvatar = createAvatar(message.you, scene);
-
-      if (onReadyMyAvatar) {
-        onReadyMyAvatar(client, localAvatar);
-      }
-
-      _(message.members).each(function(entity) {
-        createAvatar(JSON.parse(entity), scene);
-      });
     });
 
     socket.on('move', function(message) {

@@ -12,7 +12,7 @@ db.on('ready', function() {
 
 db.on('error', function(e) {
   // [Redis ERROR POLICY]
-  // * ignores error generall command process
+  // * ignores error in generall command processing
   // * for a while, treats error only here
   console.error('redis error:', e);
 });

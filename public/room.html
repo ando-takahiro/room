@@ -10,12 +10,11 @@
     <!-- https://github.com/mrdoob/stats.js -->
     <script src="vendor/three.js/Stats.js"></script>
 
-    <script src="vendor/threex/THREEx.FullScreen.js"></script>
-    <script src="vendor/threex/THREEx.WindowResize.js"></script>
     <script src="vendor/jquery-1.7.1.min.js"></script>
     <script src="vendor/Tween.js"></script>
     <script src="vendor/socket.io-client/socket.io.min.js"></script>
     <script src="vendor/underscore-min.js"></script>
+    <script src="vendor/mustache.min.js"></script>
     <script src="js/math.js"></script>
     <script src="js/controller.js"></script>
 
@@ -24,92 +23,22 @@
   <body>
     <!-- three.js container -->
     <div id="container"></div>
-    <div id="inlineDoc"></div>
 
     <script type="text/javascript">
       var stats, scene, renderer, camera;
 
-      if (!init()) {
-        TWEEN.start();
-        animate();
-      }
+      $(function() {
+        if (!init()) {
+          TWEEN.start();
+          animate();
+        }
+      });
 
       // init the scene
       function init(){
-        if (Detector.webgl) {
-          renderer = new THREE.WebGLRenderer({
-            antialias: true,	// to get smoother output
-            preserveDrawingBuffer: true	// to allow screenshot
-          });
-          renderer.setClearColorHex(0xBBBBBB, 1);
-        // uncomment if webgl is required
-        //}else{
-        //	Detector.addGetWebGLMessage();
-        //	return true;
-        } else {
-          renderer	= new THREE.CanvasRenderer();
-        }
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('container').appendChild(renderer.domElement);
-
-        // add Stats.js - https://github.com/mrdoob/stats.js
-        stats = new Stats();
-        stats.domElement.style.position	= 'absolute';
-        stats.domElement.style.bottom	= '0px';
-        document.body.appendChild( stats.domElement );
-
-        // create a scene
-        scene = new THREE.Scene();
-
-        // put a camera in the scene
-        camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(0, 5, 5);
-        camera.lookAt(new THREE.Vector3());
-        scene.add(camera);
-
-        // transparently support window resize
-        THREEx.WindowResize.bind(renderer, camera);
-        // allow 'p' to make screenshot
-        //THREEx.Screenshot.bindKey(renderer);
-
-        // allow 'f' to go fullscreen where this feature is supported
-        if (THREEx.FullScreen.available()) {
-          THREEx.FullScreen.bindKey();		
-          document.getElementById('inlineDoc').innerHTML	+= "- <i>f</i> for fullscreen";
-        }
-
-        (function setupGround() {
-          var geometry = new THREE.PlaneGeometry(100, 100),
-              material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
-              mesh = new THREE.Mesh(geometry, material);
-
-          mesh.rotation.x = -0.5 * Math.PI;
-          mesh.position.y = -0.5;
-          scene.add(mesh);
-
-          controller.createClient(io.connect(), localStorage, scene, function(client, localAvatar) {
-            $('body').on('click', function(ev) {
-              var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
-                  mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
-                  vector = new THREE.Vector3(mouseX, mouseY, -1),
-                  projector = new THREE.Projector();
-
-              projector.unprojectVector(vector, camera);
-              vector.subSelf(camera.position).normalize();
-
-              var moveTo = math.intersectRayAndPlane(
-                camera.position, vector,
-                math.plane(
-                  math.v3(0, 0.5, 0), math.v3(0, 1, 0)
-                )
-              );
-
-              localAvatar.move(moveTo);
-              client.move(moveTo);
-            });
-          });
-
-        })();
+        setupEnv();
+        setupGround();
+        setupClient();
       }
 
       // animation loop
@@ -131,6 +60,164 @@
         // actually render the scene
         renderer.render(scene, camera);
       }
+
+      //
+      // logger
+      //
+      function Logger() {
+        this.logs = [];
+      }
+
+      Logger.prototype.restore = function(dom) {
+        this.dom = dom;
+        this.dom.html('');
+        for (var i = 0; i < this.logs.length; i++) {
+          this._insert(this.logs[i]);
+        }
+      };
+
+      Logger.prototype._insert = function(line) {
+        this.dom.prepend(Mustache.to_html($('#log-template').html(), line));
+      };
+
+      Logger.prototype.push = function() {
+        var who, message;
+        switch (arguments.length) {
+        case 2:
+          who = arguments[0];
+          message = arguments[1];
+          break;
+        case 1:
+          who = '-';
+          message = arguments[0];
+          break;
+        }
+
+        var now = new Date(),
+            line = {
+              who: who,
+              message: message
+            };
+
+        this.logs.push(line);
+
+        if (this.dom) {
+          this._insert(line);
+        }
+      };
+      
+      var _logger = new Logger();
+      function log() {
+        _logger.push.apply(_logger, arguments);
+      }
+
+
+      //
+      // setuppers
+      //
+
+      function setupEnv() {
+        if (Detector.webgl) {
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,	// to get smoother output
+            preserveDrawingBuffer: true	// to allow screenshot
+          });
+          renderer.setClearColorHex(0xBBBBBB, 1);
+        // uncomment if webgl is required
+        //}else{
+        //	Detector.addGetWebGLMessage();
+        //	return true;
+        } else {
+          renderer	= new THREE.CanvasRenderer();
+        }
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // add Stats.js - https://github.com/mrdoob/stats.js
+        stats = new Stats();
+        stats.domElement.style.position	= 'absolute';
+        stats.domElement.style.bottom	= '0px';
+        document.body.appendChild(stats.domElement);
+
+        // create a scene
+        scene = new THREE.Scene();
+
+        // put a camera in the scene
+        camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
+        camera.position.set(0, 5, 5);
+        camera.lookAt(new THREE.Vector3());
+        scene.add(camera);
+      }
+
+      function setupGround() {
+        var geometry = new THREE.PlaneGeometry(100, 100),
+            material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
+            mesh = new THREE.Mesh(geometry, material);
+
+        mesh.rotation.x = -0.5 * Math.PI;
+        mesh.position.y = -0.5;
+        scene.add(mesh);
+      }
+
+      function setupToolbox(entity) {
+        var $toolbox = $(Mustache.to_html($('#toolbox-template').html(), {
+          avatar: entity.avatar,
+          id: entity.id
+        }));
+
+        _logger.restore($toolbox.find('#logs'));
+        $('body').append($toolbox);
+      }
+
+      function setupClient() {
+        controller.createClient(io.connect(), localStorage, scene, function(client, localAvatar) {
+          setupToolbox(localAvatar.entity);
+
+          var projector = new THREE.Projector();
+          $('body').on('click', function(ev) {
+            var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
+                mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
+                vector = new THREE.Vector3(mouseX, mouseY, -1);
+
+            projector.unprojectVector(vector, camera);
+            vector.subSelf(camera.position).normalize();
+
+            var moveTo = math.intersectRayAndPlane(
+              camera.position, vector,
+              math.plane(
+                math.v3(0, 0.5, 0), math.v3(0, 1, 0)
+              )
+            );
+
+            localAvatar.move(moveTo);
+            client.move(moveTo);
+          });
+        });
+      }
+
+      //
+      // event handlers
+      //
+      function speak() {
+        if (event.keyCode === 10 || event.keyCode === 13) {
+          var $this = $(event.target);
+          console.log($this.val());
+          $this.val('');
+        }
+      }
+    </script>
+
+    <script id='toolbox-template' type='text/html'>
+      <div id='toolbox' onclick='javascript:event.stopPropagation()'>
+        <div class='detail'>{{id}}</div>
+        <img id='face' src='{{avatar}}'> </img>
+        <span class='triangle-border left'><input type='text' value='hello, everyone' onkeypress='javascript:speak()'></input></span>
+        <div id='logs'> </div>
+      </div>
+    </script>
+
+    <script id='log-template' type='text/html'>
+      <p class='detail'>{{name}}: {{message}}</p>
     </script>
   </body>
 </html>
