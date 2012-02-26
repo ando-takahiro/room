@@ -12,97 +12,105 @@ function accountKey(id) {
 
 function joinRoom(entity, socket, db) {
   var id = entity.id;
+  db.hsetnx(MEMBERS, id, JSON.stringify(entity), function(err, isSet) {
+    console.log('hsetnx', err, isSet);
+    if (isSet === 1) {
+      function save() {
+        db.hset(MEMBERS, id, JSON.stringify(entity));
+      }
 
-  function save() {
-    db.hset(MEMBERS, id, JSON.stringify(entity));
-  }
+      //
+      // event handlers
+      //
+      socket.on('disconnect', function() {
+        db.hdel(MEMBERS, id); // remove form room
+        db.set(accountKey(id), JSON.stringify(entity)); // save
+        socket.broadcast.emit('leave', id);
+      });
 
-  //
-  // event handlers
-  //
-  socket.on('disconnect', function() {
-    db.hdel(MEMBERS, id); // remove form room
-    db.set(accountKey(id), JSON.stringify(entity)); // save
-    socket.broadcast.emit('leave', id);
-  });
+      socket.on('say', function(message) {
+        var record = {
+              user: id,
+              date: +new Date(),
+              message: message
+            },
+            recordStr = JSON.stringify(record);
 
-  socket.on('say', function(message) {
-    var record = {
-          user: id,
-          date: +new Date(),
-          message: message
-        },
-        recordStr = JSON.stringify(record);
+        db.lpush(CHAT, recordStr);
+        db.ltrim(CHAT, 0, CHAT_MAX_LOG - 1);
+        socket.broadcast.emit('hear', [recordStr]);
+      });
 
-    db.lpush(CHAT, recordStr);
-    db.ltrim(CHAT, 0, CHAT_MAX_LOG - 1);
-    socket.broadcast.emit('hear', [recordStr]);
-  });
+      socket.on('move', function(p) {
+        if (typeof p.x === 'number' &&
+          typeof p.y === 'number' &&
+          typeof p.z === 'number') {
 
-  socket.on('move', function(p) {
-    if (typeof p.x === 'number' &&
-      typeof p.y === 'number' &&
-      typeof p.z === 'number') {
+          entity.x = p.x;
+          entity.y = p.y;
+          entity.z = p.z;
 
-      entity.x = p.x;
-      entity.y = p.y;
-      entity.z = p.z;
-
-      save();
-      socket.broadcast.emit(
-        'move',
-        {
-          user: id,
-          position: {x: p.x, y: p.y, z: p.z}
+          save();
+          socket.broadcast.emit(
+            'move',
+            {
+              user: id,
+              position: {x: p.x, y: p.y, z: p.z}
+            }
+          );
         }
-      );
+      });
+
+      socket.on('changeAvatar', function(avatar) {
+        if (avatar.length > 100) {
+          avatar.length = 100;
+        }
+        entity.avatar = avatar;
+        entity.isInitialAvatar = false;
+        save();
+        socket.broadcast.emit('changeAvatar', {
+          user: id, avatar: avatar
+        });
+      });
+
+      socket.on('changeName', function(newName) {
+        if (newName.length > 10) {
+          newName.length = 10;
+        }
+        entity.name = newName;
+        entity.isInitialName = false;
+        save();
+        socket.broadcast.emit('changeName', {
+          user: id, name: newName
+        });
+      });
+
+      //
+      // initial events pushing
+      //
+      db.lrange(CHAT, 0, -1, function(err, msgs) {
+        if (msgs.length > 0) {
+          socket.emit('hear', msgs);
+        }
+      });
+
+      db.hgetall(MEMBERS, function(err, members) {
+        // TODO: cache?
+        // TODO: split request by members size
+        socket.emit('welcome', {you: entity, members: members || {}});
+      });
+
+      socket.broadcast.emit('newcomer', entity);
+    } else {
+      console.log('collision!!!!', id);
+      // fail -> so new entity
+      newEntity(socket, db);
     }
   });
-
-  socket.on('changeAvatar', function(avatar) {
-    if (avatar.length > 100) {
-      avatar.length = 100;
-    }
-    entity.avatar = avatar;
-    entity.isInitialAvatar = false;
-    save();
-    socket.broadcast.emit('changeAvatar', {
-      user: id, avatar: avatar
-    });
-  });
-
-  socket.on('changeName', function(newName) {
-    if (newName.length > 10) {
-      newName.length = 10;
-    }
-    entity.name = newName;
-    entity.isInitialName = false;
-    save();
-    socket.broadcast.emit('changeName', {
-      user: id, name: newName
-    });
-  });
-
-  //
-  // initial events pushing
-  //
-  db.lrange(CHAT, 0, -1, function(err, msgs) {
-    if (msgs.length > 0) {
-      socket.emit('hear', msgs);
-    }
-  });
-
-  db.hgetall(MEMBERS, function(err, members) {
-    // TODO: cache?
-    // TODO: split request by members size
-    socket.emit('welcome', {you: entity, members: members || {}});
-  });
-
-  socket.broadcast.emit('newcomer', entity);
 }
 
 function newEntity(socket, db) {
-  var id = hat(),
+  var id = hat() + +(new Date()),
       entity = {
         id: id,
         x: Math.random(),
@@ -115,7 +123,6 @@ function newEntity(socket, db) {
       },
       entityStr = JSON.stringify(entity);
 
-  db.hset(MEMBERS, id, entityStr);
   db.set(accountKey(id), entityStr);
   joinRoom(entity, socket, db);
 }
@@ -146,18 +153,11 @@ exports.restore = function(sockets, db) {
   sockets.on('connection', function(socket) {
     socket.on('login', function(requestedId) {
       if (requestedId === '') {
-        // new client
+        // new account
         newEntity(socket, db);
       } else {
-        db.hget(MEMBERS, requestedId, function(err, entityStr) {
-          if (entityStr) {
-            // another client in same browser
-            newEntity(socket, db);
-          } else {
-            // returned client
-            loadEntity(requestedId, socket, db);
-          }
-        });
+        // existing account
+        loadEntity(requestedId, socket, db);
       }
     });
   });

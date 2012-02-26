@@ -43,20 +43,9 @@ var controller = (function() {
   }
 
   //
-  // Client
+  // login
   //
-  function Client(socket) {
-    this.socket = socket;
-  }
-
-  Client.prototype.move = function(position) {
-    this.socket.emit('move', {x: position.x, y: position.y, z : position.z});
-  };
-
-  //
-  // createClient
-  //
-  exports.createClient = function(socket, storage, scene, gui, onReadyMyAvatar) {
+  exports.login = function(socket, storage, scene, gui, onReadyMyAvatar) {
     var userId = storage.getItem(USER_ID_KEY);
 
     // setup events
@@ -67,46 +56,68 @@ var controller = (function() {
         socket.emit('login', '');
         userId = null;
       } else {
-        var client = new Client(socket); 
-
         if (!userId) {
           storage.setItem(USER_ID_KEY, message.you.id);
         }
 
-        var localAvatar = createAvatar(message.you, scene);
+        var localAvatar = createAvatar(message.you, scene),
+            id = message.you.id;
+
+        gui.on('changeName', function(name) {
+          socket.emit('changeName', name);
+        });
+
+        gui.on('changeAvatar', function(avatar) {
+          socket.emit('changeAvatar', avatar);
+          localAvatar.mesh.material.map.image.src = avatar;
+        });
+
+        gui.on('move', function(position) {
+          socket.emit('move', {x: position.x, y: position.y, z : position.z});
+        });
+
+        gui.on('say', function(msg) {
+          gui.emit('hear', {user: id, message: msg, date: +new Date()});
+          socket.emit('say', msg);
+        });
+
+        _(message.members).each(function(entity, entityId) {
+          if (entityId !== id) {
+            createAvatar(JSON.parse(entity), scene);
+          }
+        });
 
         if (onReadyMyAvatar) {
-          onReadyMyAvatar(client, localAvatar);
+          onReadyMyAvatar(localAvatar, avatars);
         }
 
-        _(message.members).each(function(entity) {
-          createAvatar(JSON.parse(entity), scene);
+        socket.on('move', function(message) {
+          var avatar = avatars[message.user];
+          if (avatar !== undefined) {
+            avatar.move(message.position);
+          }
+        });
+
+        socket.on('newcomer', function(message) {
+          if (message.id !== id) {
+            createAvatar(message, scene);
+          }
+        });
+
+        socket.on('leave', function(id) {
+          var avatar = avatars[id];
+          if (avatar) {
+            avatars[id].leave();
+            delete avatars[id];
+          }
         });
       }
-    });
-
-    socket.on('move', function(message) {
-      avatars[message.id].move(message.position);
-    });
-
-    gui.on('say', function(msg) {
-      gui.emit('hear', msg);
-      socket.emit('say', msg);
     });
 
     socket.on('hear', function(msgs) {
       for (var i = msgs.length - 1; i >= 0; i--) {
         gui.emit('hear', JSON.parse(msgs[i]));
       }
-    });
-
-    socket.on('newcomer', function(message) {
-      createAvatar(message, scene);
-    });
-
-    socket.on('leave', function(id) {
-      avatars[id].leave();
-      delete avatars[id];
     });
 
     // do login

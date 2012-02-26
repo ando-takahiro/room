@@ -63,17 +63,6 @@
       }
 
       //
-      // logger
-      //
-      var _logger = new logging.Logger();
-      function log(msg) {
-        _logger.push(msg);
-      }
-      guiEvents.on('hear', function(msg) {
-        log(_.extend(msg, {type: 'chat'}));
-      });
-
-      //
       // setuppers
       //
       function setupEnv() {
@@ -119,65 +108,145 @@
         scene.add(mesh);
       }
 
-      function setupToolbox(entity) {
-        var $toolbox = $(Mustache.to_html($('#toolbox-template').html(), {
-          avatar: entity.avatar,
-          id: entity.id
-        }));
+      function setupToolbox(entity, avatars, hearedBeforeLogin) {
+        function resolveName(user) {
+          return user && user in avatars && avatars[user].entity.name || 'unknown';
+        }
 
-        _logger.restore(entity.id, $toolbox.find('#logs'));
+        var params = _.extend(_.clone(entity), {name: resolveName(entity.id)}),
+            $toolbox = $(Mustache.to_html($('#toolbox-template').html(), params));
+
+        var _logger = new logging.Logger(entity.id, $toolbox.find('#logs'));
+        guiEvents.removeAllListeners('hear');
+        guiEvents.on('hear', function(msg) {
+          msg.name = resolveName(msg.user);
+          _logger.push(msg);
+        });
+        _.each(hearedBeforeLogin, function(msg) {
+          guiEvents.emit('hear', msg);
+        });
+
         $('body').append($toolbox);
       }
 
       function setupClient() {
-        controller.createClient(io.connect(), localStorage, scene, guiEvents, function(client, localAvatar) {
-          setupToolbox(localAvatar.entity);
-
-          var projector = new THREE.Projector();
-          $('body').on('click', function(ev) {
-            var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
-                mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
-                vector = new THREE.Vector3(mouseX, mouseY, -1);
-
-            projector.unprojectVector(vector, camera);
-            vector.subSelf(camera.position).normalize();
-
-            var moveTo = math.intersectRayAndPlane(
-              camera.position, vector,
-              math.plane(
-                math.v3(0, 0.5, 0), math.v3(0, 1, 0)
-              )
-            );
-
-            localAvatar.move(moveTo);
-            client.move(moveTo);
-          });
+        var hearedBeforeLogin = [];
+        guiEvents.on('hear', function(msg) {
+          hearedBeforeLogin.push(msg);
         });
+
+        controller.login(
+            io.connect(),
+            localStorage,
+            scene,
+            guiEvents,
+            function(localAvatar, avatars) {
+              setupToolbox(localAvatar.entity, avatars, hearedBeforeLogin);
+
+              var projector = new THREE.Projector();
+              function move(ev) {
+                var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
+                    mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
+                    vector = new THREE.Vector3(mouseX, mouseY, -1);
+
+                projector.unprojectVector(vector, camera);
+                vector.subSelf(camera.position).normalize();
+
+                var moveTo = math.intersectRayAndPlane(
+                  camera.position, vector,
+                  math.plane(
+                    math.v3(0, 0.5, 0), math.v3(0, 1, 0)
+                  )
+                );
+
+                localAvatar.move(moveTo);
+                guiEvents.emit('move', moveTo);
+              }
+              $('body').on('click', move).on('touchstart', function(e) {
+                move(e.originalEvent.touches[0]);
+              });
+            }
+        );
       }
 
       //
       // event handlers
       //
-      function speak() {
+      function say() {
         if (event.keyCode === 10 || event.keyCode === 13) {
           var $this = $(event.target);
           guiEvents.emit('say', $this.val());
           $this.val('');
         }
       }
+
+      function changeName() {
+        if (event.keyCode === 10 || event.keyCode === 13) {
+          var $this = $(event.target);
+          guiEvents.emit('changeName', $this.val());
+          $('#name-header').html('name:');
+        }
+      }
+
+      function showAvatarUrl() {
+        var $this = $(event.target),
+            $avatarUrlInput = $(Mustache.to_html($('#avatar-url-template').html(), {
+              avatar: $this.attr('src')
+            }));
+
+        $this.next().after($avatarUrlInput);
+        $avatarUrlInput.fadeIn();
+      }
+
+      function changeAvatar() {
+        if (event.keyCode === 10 || event.keyCode === 13) {
+          var $this = $(event.target);
+          guiEvents.emit('changeAvatar', $this.val());
+          $this.fadeOut();
+        }
+      }
+
+      function kill() {
+        event.stopPropagation();
+      }
+
     </script>
 
     <script id='toolbox-template' type='text/html'>
-      <div id='toolbox' onclick='javascript:event.stopPropagation()'>
-        <div class='detail'>{{id}}</div>
+      <div id='toolbox' onclick='javascript:kill()' ontouchstart='javascript:kill()'>
         <img id='face' src='{{avatar}}'> </img>
-        <span class='triangle-border left'><input type='text' value='hello, everyone' onkeypress='javascript:speak()'></input></span>
+        <span class='triangle-border left'><input type='text' value='hello, everyone' onkeypress='javascript:say()'></input></span>
+        <div class='detail name'>
+          <span id='name-header'>
+            {{#isInitialName}}
+            <b>change your name!</b>
+            {{/isInitialName}}
+            {{^isInitialName}}
+            name
+            {{/isInitialName}}
+            :
+          </span>
+          <input type='text' value='{{name}}' onkeypress='javascript:changeName()'></input>
+        </div>
+        <div class='detail'>id: {{id}}</div>
+
+        <hr> </hr>
+
         <div id='logs'> </div>
       </div>
     </script>
 
+    <script id='avatar-url-template' type='text/html'>
+      <div><input type='text' value='{{avatar}}' onkeypress='javascript:changeAvatar()'></input></div>
+    </script>
+
     <script id='log-template' type='text/html'>
-      <p class='detail'>{{message}}</p>
+      {{#name}}
+        <p class='detail'>{{name}}: {{message}}</p>
+      {{/name}}
+      {{^name}}
+        <p class='detail'>{{message}}</p>
+      {{/name}}
     </script>
   </body>
 </html>

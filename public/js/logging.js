@@ -1,18 +1,11 @@
 var logging = (function() {
   var exports = {};
 
-  function Logger() {
+  function Logger(id, dom) {
     this.logs = [];
-  }
-
-  Logger.prototype.restore = function(id, dom) {
     this.id = id;
     this.dom = dom;
-    this.dom.html('');
-    for (var i = 0; i < this.logs.length; i++) {
-      this._show(this.logs[i]);
-    }
-  };
+  }
 
   Logger.prototype._show = function(msg) {
     this.dom.prepend(Mustache.to_html($('#log-template').html(), msg));

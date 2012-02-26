@@ -28,9 +28,17 @@ body {
   font-size: 0.5em;
 }
 
+.name:hover {
+  text-decoration: underline;
+}
+
 #logs {
   max-height: 10em;
   overflow: scroll;
+}
+
+hr {
+  border-width: 1px;
 }
 
 /* ------------------------------------------
