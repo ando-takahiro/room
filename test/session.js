@@ -250,7 +250,7 @@ describe('login in room', function() {
   });
 });
 
-describe('say', function() {
+describe('room events', function() {
   var sockets, pair, db, clock;
 
   beforeEach(function() {
@@ -265,32 +265,84 @@ describe('say', function() {
     clock.restore();
   });
 
-  it('records message in db and broadcast', function(done) {
-    clock.tick(123);
-    var id;
-    pair.server.broadcast.on('hear', function(msgs) {
-      expect(msgs).to.have.length(1);
+  describe('say', function() {
+    it('records message in db and broadcast', function(done) {
+      clock.tick(123);
+      var id;
+      pair.server.broadcast.on('hear', function(msgs) {
+        expect(msgs).to.have.length(1);
 
-      var parsed = JSON.parse(msgs[0]);
-      expect(parsed).to.be.eql({
-        talker: id,
-        message: 'hello world',
-        date: 123
+        var parsed = JSON.parse(msgs[0]);
+        expect(parsed).to.be.eql({
+          user: id,
+          message: 'hello world',
+          date: 123
+        });
+
+        expect(db.db[room.CHAT_KEY]).to.eql(msgs);
+        done();
       });
 
-      expect(db.db[room.CHAT_KEY]).to.eql(msgs);
-      done();
-    });
+      sockets.on('connection', function() {
+        pair.client.on('welcome', function(message) {
+          id = message.you.id;
+          pair.client.emit('say', 'hello world');
+        });
 
-    sockets.on('connection', function() {
-      pair.client.on('welcome', function(message) {
-        id = message.you.id;
-        pair.client.emit('say', 'hello world');
+        pair.client.emit('login', '');
       });
 
-      pair.client.emit('login', '');
+      sockets.emit('connection', pair.server);
     });
+  });
 
-    sockets.emit('connection', pair.server);
+  describe('changeName', function() {
+    it('change name and broadcast', function(done) {
+      var id;
+      pair.server.broadcast.on('changeName', function(msg) {
+        expect(msg).to.eql({user: id, name: 'foobared'});
+        var entity = JSON.parse(db.db[room.MEMBERS_KEY][id]);
+        expect(entity.name).to.be('foobared');
+        expect(entity.isInitialName).to.be(false);
+        done();
+      });
+
+      sockets.on('connection', function() {
+        pair.client.on('welcome', function(message) {
+          id = message.you.id;
+          expect(message.you.isInitialName).to.be(true);
+          pair.client.emit('changeName', 'foobared');
+        });
+
+        pair.client.emit('login', '');
+      });
+
+      sockets.emit('connection', pair.server);
+    });
+  });
+
+  describe('changeAvatar', function() {
+    it('change avatar and broadcast', function(done) {
+      var id;
+      pair.server.broadcast.on('changeAvatar', function(msg) {
+        expect(msg).to.eql({user: id, avatar: 'dummy-url'});
+        var entity = JSON.parse(db.db[room.MEMBERS_KEY][id]);
+        expect(entity.avatar).to.be('dummy-url');
+        expect(entity.isInitialAvatar).to.be(false);
+        done();
+      });
+
+      sockets.on('connection', function() {
+        pair.client.on('welcome', function(message) {
+          id = message.you.id;
+          expect(message.you.isInitialAvatar).to.be(true);
+          pair.client.emit('changeAvatar', 'dummy-url');
+        });
+
+        pair.client.emit('login', '');
+      });
+
+      sockets.emit('connection', pair.server);
+    });
   });
 });

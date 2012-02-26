@@ -13,6 +13,13 @@ function accountKey(id) {
 function joinRoom(entity, socket, db) {
   var id = entity.id;
 
+  function save() {
+    db.hset(MEMBERS, id, JSON.stringify(entity));
+  }
+
+  //
+  // event handlers
+  //
   socket.on('disconnect', function() {
     db.hdel(MEMBERS, id); // remove form room
     db.set(accountKey(id), JSON.stringify(entity)); // save
@@ -41,17 +48,44 @@ function joinRoom(entity, socket, db) {
       entity.y = p.y;
       entity.z = p.z;
 
-      db.hset(MEMBERS, id, JSON.stringify(entity));
+      save();
       socket.broadcast.emit(
         'move',
         {
-          id: id,
+          user: id,
           position: {x: p.x, y: p.y, z: p.z}
         }
       );
     }
   });
 
+  socket.on('changeAvatar', function(avatar) {
+    if (avatar.length > 100) {
+      avatar.length = 100;
+    }
+    entity.avatar = avatar;
+    entity.isInitialAvatar = false;
+    save();
+    socket.broadcast.emit('changeAvatar', {
+      user: id, avatar: avatar
+    });
+  });
+
+  socket.on('changeName', function(newName) {
+    if (newName.length > 10) {
+      newName.length = 10;
+    }
+    entity.name = newName;
+    entity.isInitialName = false;
+    save();
+    socket.broadcast.emit('changeName', {
+      user: id, name: newName
+    });
+  });
+
+  //
+  // initial events pushing
+  //
   db.lrange(CHAT, 0, -1, function(err, msgs) {
     if (msgs.length > 0) {
       socket.emit('hear', msgs);
@@ -74,7 +108,10 @@ function newEntity(socket, db) {
         x: Math.random(),
         y: 0,
         z: Math.random(),
-        avatar: 'images/avatar0.png'
+        avatar: 'images/avatar0.png',
+        name: 'noname' + (+new Date()) % 1000,
+        isInitialName: true,
+        isInitialAvatar: true
       },
       entityStr = JSON.stringify(entity);
 
