@@ -251,20 +251,21 @@ describe('say', function() {
   it('records message in db and broadcast', function(done) {
     clock.tick(123);
     var id;
-    pair.client.broadcast.on('hear', function(msg) {
-      console.log('heheheh');
-      var parsed = JSON.parse(msg);
+    pair.server.broadcast.on('hear', function(msgs) {
+      expect(msgs).to.have.length(1);
+
+      var parsed = JSON.parse(msgs[0]);
       expect(parsed).to.be.eql({
         talker: id,
         message: 'hello world',
         date: 123
       });
-      expect(db.db[room.CHAT_KEY]).to.eql([parsed]);
+
+      expect(db.db[room.CHAT_KEY]).to.eql(msgs);
       done();
     });
 
     sockets.on('connection', function() {
-      console.log('cococo');
       pair.client.on('welcome', function(message) {
         id = message.you.id;
         pair.client.emit('say', 'hello world');

@@ -29,7 +29,7 @@ function joinRoom(entity, socket, db) {
 
     db.lpush(CHAT, recordStr);
     db.ltrim(CHAT, 0, CHAT_MAX_LOG - 1);
-    socket.broadcast.emit('hear', recordStr);
+    socket.broadcast.emit('hear', [recordStr]);
   });
 
   socket.on('move', function(p) {
