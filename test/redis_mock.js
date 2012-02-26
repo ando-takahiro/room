@@ -272,7 +272,7 @@ MockClient.prototype._multiPairedCommand = function(args, worker, reporter) {
   }
 };
 
-MockClient.prototype.hset = function(key, field, value, callback) {
+MockClient.prototype._hset = function(key, field, value, callback) {
   var alreadyExists = 0;
   this._multiPairedCommand(
     arguments,
@@ -282,6 +282,18 @@ MockClient.prototype.hset = function(key, field, value, callback) {
     },
     function() {return alreadyExists;}
   );
+};
+
+MockClient.prototype.hset = function(key, field, value, callback) {
+  this._hset(key, field, value, callback);
+};
+
+MockClient.prototype.hsetnx = function(key, field, value, callback) {
+  if (this.db[key] && this.db[key][field]) {
+    callback(null, 0); // already exists
+  } else {
+    this._hset(key, field, value, callback);
+  }
 };
 
 MockClient.prototype.hmset = function(key) {
@@ -539,6 +551,7 @@ function revisionPolicy(funcName, orgFunc) {
     break;
 
   case 'setnx':
+  case 'hsetnx':
     policy = incrementRange(0, 1, unlessZeroReply);
     break;
 

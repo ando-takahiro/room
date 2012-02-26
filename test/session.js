@@ -75,7 +75,7 @@ Storage.prototype.__defineGetter__('length', function () {
 //
 // tests
 //
-describe('controller.createClient', function() {
+describe('controller.login', function() {
   var sock, storage;
 
   beforeEach(function() {
@@ -106,13 +106,12 @@ describe('controller.createClient', function() {
 
     expect(storage.getItem(controller.USER_ID_KEY)).to.be(null);
 
-    controller.createClient(
+    controller.login(
       sock.client,
       storage,
       new THREE.Scene(),
       new EventEmitter(),
-      function(client, localAvatar) {
-        expect(client).not.to.be(null);
+      function(localAvatar) {
         expect(storage.getItem('userId')).to.be(localAvatar.entity.id);
         var mesh = localAvatar.mesh;
         expect(mesh.position.x).to.be(0.1);
@@ -141,13 +140,12 @@ describe('controller.createClient', function() {
 
     storage.setItem(controller.USER_ID_KEY, 'helloworld');
 
-    controller.createClient(
+    controller.login(
       sock.client,
       storage,
       new THREE.Scene(),
       new EventEmitter(),
-      function(client, localAvatar) {
-        expect(client).not.to.be(null);
+      function(localAvatar) {
         expect(storage.getItem('userId')).to.be('helloworld');
         expect(storage.getItem('userId')).to.be(localAvatar.entity.id);
         done();

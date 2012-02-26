@@ -13,7 +13,6 @@ function accountKey(id) {
 function joinRoom(entity, socket, db) {
   var id = entity.id;
   db.hsetnx(MEMBERS, id, JSON.stringify(entity), function(err, isSet) {
-    console.log('hsetnx', err, isSet);
     if (isSet === 1) {
       function save() {
         db.hset(MEMBERS, id, JSON.stringify(entity));
@@ -102,7 +101,6 @@ function joinRoom(entity, socket, db) {
 
       socket.broadcast.emit('newcomer', entity);
     } else {
-      console.log('collision!!!!', id);
       // fail -> so new entity
       newEntity(socket, db);
     }
