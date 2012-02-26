@@ -218,7 +218,7 @@ describe('login in room', function() {
         entityStr = JSON.stringify(entity);
 
     db.set('account:userId0:entity', entityStr);
-    db.hset(room.KEY, entity.id, entityStr);
+    db.hset(room.MEMBERS_KEY, entity.id, entityStr);
 
     sockets.on('connection', function() {
       pair.client.on('welcome', function(message) {
@@ -227,6 +227,50 @@ describe('login in room', function() {
       });
 
       pair.client.emit('login', 'userId0');
+    });
+
+    sockets.emit('connection', pair.server);
+  });
+});
+
+describe('say', function() {
+  var sockets, pair, db, clock;
+
+  beforeEach(function() {
+    sockets = new EventEmitter();
+    pair = MockSocket.makePair();
+    db = redis_mock.createClient();
+    room.restore(sockets, db);
+    clock = sinon.useFakeTimers();
+  });
+
+  after(function() {
+    clock.restore();
+  });
+
+  it('records message in db and broadcast', function(done) {
+    clock.tick(123);
+    var id;
+    pair.client.broadcast.on('hear', function(msg) {
+      console.log('heheheh');
+      var parsed = JSON.parse(msg);
+      expect(parsed).to.be.eql({
+        talker: id,
+        message: 'hello world',
+        date: 123
+      });
+      expect(db.db[room.CHAT_KEY]).to.eql([parsed]);
+      done();
+    });
+
+    sockets.on('connection', function() {
+      console.log('cococo');
+      pair.client.on('welcome', function(message) {
+        id = message.you.id;
+        pair.client.emit('say', 'hello world');
+      });
+
+      pair.client.emit('login', '');
     });
 
     sockets.emit('connection', pair.server);

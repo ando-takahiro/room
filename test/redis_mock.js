@@ -102,11 +102,11 @@ MockClient.prototype.del = function() {
   );
 };
 
-MockClient.prototype.rpush = function(key) {
-  var list = this.db[key];
+MockClient.prototype._pushCommon = function(doInsert, args) {
+  var key = args[0], list = this.db[key];
   if (list !== null && list !== undefined) {
     if (!(list instanceof Array)) {
-      (arguments[arguments.length - 1])(new Error('ERR Operation against a key holding the wrong kind of value'));
+      (args[args.length - 1])(new Error('ERR Operation against a key holding the wrong kind of value'));
       return;
     }
   } else {
@@ -114,9 +114,9 @@ MockClient.prototype.rpush = function(key) {
   }
 
   this._repeatCommand(
-    Array.prototype.slice.call(arguments, 1),
+    Array.prototype.slice.call(args, 1),
     function(v) {
-      list.push(String(v));
+      doInsert(list, String(v));
     },
     function() {
       return list.length;
@@ -124,6 +124,46 @@ MockClient.prototype.rpush = function(key) {
   );
 
   this.notify(key);
+}
+
+MockClient.prototype.lpush = function() {
+  this._pushCommon(
+    function(list, value) {
+      list.unshift(value);
+    },
+    arguments
+  );
+};
+
+
+MockClient.prototype.rpush = function() {
+  this._pushCommon(
+    function(list, value) {
+      list.push(value);
+    },
+    arguments
+  );
+  //var list = this.db[key];
+  //if (list !== null && list !== undefined) {
+  //  if (!(list instanceof Array)) {
+  //    (arguments[arguments.length - 1])(new Error('ERR Operation against a key holding the wrong kind of value'));
+  //    return;
+  //  }
+  //} else {
+  //  list = this.db[key] = [];
+  //}
+
+  //this._repeatCommand(
+  //  Array.prototype.slice.call(arguments, 1),
+  //  function(v) {
+  //    list.push(String(v));
+  //  },
+  //  function() {
+  //    return list.length;
+  //  }
+  //);
+
+  //this.notify(key);
 };
 
 function normalizeIndex(idx, len) {
@@ -514,6 +554,7 @@ function revisionPolicy(funcName, orgFunc) {
   case 'set':
   case 'setex':
   case 'incrby':
+  case 'lpush':
   case 'rpush':
   case 'sadd':
   case 'hset':

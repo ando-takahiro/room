@@ -175,6 +175,29 @@ function commandSpecs(it) {
     });
   });
 
+  describe('lpush', function() {
+    it('pushes string into front', function(done, client) {
+      client.del('a');
+      client.lpush('a', 'hello', 'world', function(err, replies) {
+        expect(replies).to.be(2);
+        client.lrange('a', 0, -1, function(err, replies) {
+          expect(replies).to.eql(['world', 'hello']);
+          done();
+        });
+      });
+    });
+
+    it('fails when key is not list', function(done, client) {
+      client.del('b');
+      client.set('b', 100);
+      client.lpush('b', 'hello', function(err, replies) {
+        expect(err instanceof Error).to.be(true);
+        expect(replies).to.be(undefined);
+        done();
+      });
+    });
+  });
+
   describe('lrange', function() {
     it('gets elements of range', function(done, client) {
       client.del('a');

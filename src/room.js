@@ -1,7 +1,10 @@
 var hat = require('hat'),
-    ROOM = 'room:default:room';
+    MEMBERS = 'room:default:members',
+    CHAT = 'room:default:chat',
+    CHAT_MAX_LOG = 100;
 
-exports.KEY = ROOM;
+exports.MEMBERS_KEY = MEMBERS;
+exports.CHAT_KEY = CHAT;
 
 function accountKey(id) {
   return 'account:' + id + ':entity';
@@ -10,18 +13,23 @@ function accountKey(id) {
 function joinRoom(entity, socket, db) {
   var id = entity.id;
 
-  db.hgetall(ROOM, function(err, members) {
-    // TODO: cache?
-    // TODO: split request by members size
-    socket.emit('welcome', {you: entity, members: members || {}});
-  });
-
-  socket.broadcast.emit('newcomer', entity);
-
   socket.on('disconnect', function() {
-    db.hdel(ROOM, id); // remove form room
+    db.hdel(MEMBERS, id); // remove form room
     db.set(accountKey(id), JSON.stringify(entity)); // save
     socket.broadcast.emit('leave', id);
+  });
+
+  socket.on('say', function(message) {
+    var record = {
+          talker: id,
+          date: +new Date(),
+          message: message
+        },
+        recordStr = JSON.stringify(record);
+
+    db.lpush(CHAT, recordStr);
+    db.ltrim(CHAT, 0, CHAT_MAX_LOG - 1);
+    socket.broadcast.emit('hear', recordStr);
   });
 
   socket.on('move', function(p) {
@@ -33,7 +41,7 @@ function joinRoom(entity, socket, db) {
       entity.y = p.y;
       entity.z = p.z;
 
-      db.hset(ROOM, id, JSON.stringify(entity));
+      db.hset(MEMBERS, id, JSON.stringify(entity));
       socket.broadcast.emit(
         'move',
         {
@@ -43,6 +51,15 @@ function joinRoom(entity, socket, db) {
       );
     }
   });
+
+  db.hgetall(MEMBERS, function(err, members) {
+    // TODO: cache?
+    // TODO: split request by members size
+    socket.emit('welcome', {you: entity, members: members || {}});
+  });
+
+  socket.broadcast.emit('newcomer', entity);
+
 }
 
 function newEntity(socket, db) {
@@ -56,7 +73,7 @@ function newEntity(socket, db) {
       },
       entityStr = JSON.stringify(entity);
 
-  db.hset(ROOM, id, entityStr);
+  db.hset(MEMBERS, id, entityStr);
   db.set(accountKey(id), entityStr);
   joinRoom(entity, socket, db);
 }
@@ -71,9 +88,9 @@ function loadEntity(id, socket, db) {
   });
 }
 
-// Avatars are left abandoned in the ROOM after deploy, so recover by this function
+// Avatars are left abandoned in the MEMBERS after deploy, so recover by this function
 function recoverEntitiesFromRoom(db) {
-  db.hgetall(ROOM, function(err, kvs) {
+  db.hgetall(MEMBERS, function(err, kvs) {
     for (var id in kvs) {
       db.set(accountKey(id), kvs[id]);
     }
@@ -82,7 +99,7 @@ function recoverEntitiesFromRoom(db) {
 
 exports.restore = function(sockets, db) {
   recoverEntitiesFromRoom(db);
-  db.del(ROOM);
+  db.del(MEMBERS);
 
   sockets.on('connection', function(socket) {
     socket.on('login', function(requestedId) {
@@ -90,7 +107,7 @@ exports.restore = function(sockets, db) {
         // new client
         newEntity(socket, db);
       } else {
-        db.hget(ROOM, requestedId, function(err, entityStr) {
+        db.hget(MEMBERS, requestedId, function(err, entityStr) {
           if (entityStr) {
             // another client in same browser
             newEntity(socket, db);
