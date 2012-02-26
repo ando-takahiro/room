@@ -56,7 +56,7 @@ var controller = (function() {
   //
   // createClient
   //
-  exports.createClient = function(socket, storage, scene, onReadyMyAvatar) {
+  exports.createClient = function(socket, storage, scene, gui, onReadyMyAvatar) {
     var userId = storage.getItem(USER_ID_KEY);
 
     // setup events
@@ -87,6 +87,17 @@ var controller = (function() {
 
     socket.on('move', function(message) {
       avatars[message.id].move(message.position);
+    });
+
+    gui.on('say', function(msg) {
+      gui.emit('hear', msg);
+      socket.emit('say', msg);
+    });
+
+    socket.on('hear', function(msgs) {
+      for (var i = msgs.length - 1; i >= 0; i--) {
+        gui.emit('hear', JSON.parse(msgs[i]));
+      }
     });
 
     socket.on('newcomer', function(message) {

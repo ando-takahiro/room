@@ -110,6 +110,7 @@ describe('controller.createClient', function() {
       sock.client,
       storage,
       new THREE.Scene(),
+      new EventEmitter(),
       function(client, localAvatar) {
         expect(client).not.to.be(null);
         expect(storage.getItem('userId')).to.be(localAvatar.entity.id);
@@ -144,6 +145,7 @@ describe('controller.createClient', function() {
       sock.client,
       storage,
       new THREE.Scene(),
+      new EventEmitter(),
       function(client, localAvatar) {
         expect(client).not.to.be(null);
         expect(storage.getItem('userId')).to.be('helloworld');

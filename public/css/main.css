@@ -11,8 +11,8 @@ body {
 
 #toolbox {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: 10px;
+  top: 10px;
 }
 
 #toolbox input {
@@ -26,6 +26,11 @@ body {
 
 .detail {
   font-size: 0.5em;
+}
+
+#logs {
+  max-height: 10em;
+  overflow: scroll;
 }
 
 /* ------------------------------------------

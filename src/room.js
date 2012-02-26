@@ -21,7 +21,7 @@ function joinRoom(entity, socket, db) {
 
   socket.on('say', function(message) {
     var record = {
-          talker: id,
+          user: id,
           date: +new Date(),
           message: message
         },
