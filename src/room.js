@@ -52,6 +52,12 @@ function joinRoom(entity, socket, db) {
     }
   });
 
+  db.lrange(CHAT, 0, -1, function(err, msgs) {
+    if (msgs.length > 0) {
+      socket.emit('hear', msgs);
+    }
+  });
+
   db.hgetall(MEMBERS, function(err, members) {
     // TODO: cache?
     // TODO: split request by members size
@@ -59,7 +65,6 @@ function joinRoom(entity, socket, db) {
   });
 
   socket.broadcast.emit('newcomer', entity);
-
 }
 
 function newEntity(socket, db) {

@@ -231,6 +231,21 @@ describe('login in room', function() {
 
     sockets.emit('connection', pair.server);
   });
+
+  it('sends "hear" event if chat logs existing', function(done) {
+    db.rpush(room.CHAT_KEY, 'aaa', 'bbb', 'ccc');
+
+    sockets.on('connection', function() {
+      pair.client.on('hear', function(msgs) {
+        expect(msgs).to.eql(['aaa', 'bbb', 'ccc']);
+        done();
+      });
+
+      pair.client.emit('login', '');
+    });
+
+    sockets.emit('connection', pair.server);
+  });
 });
 
 describe('say', function() {
