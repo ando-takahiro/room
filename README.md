@@ -1,23 +1,48 @@
-# room - a 3d virtual space
-
-## Abstract
+# room - a 3D virtual space
 
 It runs on [node-ninja](http://room.node-ninja.com:8080/).
 
-This is my personal project. This provides an experimental 3d virtual space using node.js, webgl, redis, socket.io. My goal is [UGC](http://en.wikipedia.org/wiki/User-generated_content) web space, for example [Minecraft](http://www.minecraft.net/) :)
+## Motivation
 
-## Details
-
-Technical details will be writen [here](https://github.com/ando-takahiro/blog/) in Japanese.
+This provides an experimental 3D virtual space using node.js, webgl, redis, socket.io. My goal is something like [UGC](http://en.wikipedia.org/wiki/User-generated_content) web space, for example [Minecraft](http://www.minecraft.net/) :)
 
 ## How to run
 
  1. checkout this repository
- 1. install redis
- 1. run redis with default setting
- 1. sh scripts/redis.sh
+ 1. npm install
+ 1. install redis(use deps/redis-*.tar.gz)
+ 1. run redis-server with default setting(no argument)
  1. sh scripts/dev.sh
- 1. access http://localhost:8080/
+ 1. access [http://localhost:8080/](http://localhost:8080/)
+
+## DB
+
+ * now using [Redis](http://redis.io/)
+ * only 2 schemas
+   * **room:default:room** key contains active users in the room
+   * **account:[user-id]:entity** key contains last status of user
+ * stores avatar(entity) information as JSON string
+
+## Important files and directories
+
+ * server.js: server entry point
+ * public: client side static files
+  * room.html: core html
+  * js
+     * controller.js: core logic of client
+ * src: server side codes
+  * room.js: core logic of server
+ * test: test codes
+
+## Testing strategy
+
+ * now using [mocha](http://visionmedia.github.com/mocha/)
+   * browser side test is also mocha based (but it's tricky. see test/browser.js)
+ * experimental redis mock
+
+## More details
+
+Technical details will be writen [here](https://github.com/ando-takahiro/blog/) in Japanese.
 
 ## Lisence
 

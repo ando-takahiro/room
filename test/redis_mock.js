@@ -102,11 +102,11 @@ MockClient.prototype.del = function() {
   );
 };
 
-MockClient.prototype.rpush = function(key) {
-  var list = this.db[key];
+MockClient.prototype._pushCommon = function(doInsert, args) {
+  var key = args[0], list = this.db[key];
   if (list !== null && list !== undefined) {
     if (!(list instanceof Array)) {
-      (arguments[arguments.length - 1])(new Error('ERR Operation against a key holding the wrong kind of value'));
+      (args[args.length - 1])(new Error('ERR Operation against a key holding the wrong kind of value'));
       return;
     }
   } else {
@@ -114,9 +114,9 @@ MockClient.prototype.rpush = function(key) {
   }
 
   this._repeatCommand(
-    Array.prototype.slice.call(arguments, 1),
+    Array.prototype.slice.call(args, 1),
     function(v) {
-      list.push(String(v));
+      doInsert(list, String(v));
     },
     function() {
       return list.length;
@@ -124,11 +124,46 @@ MockClient.prototype.rpush = function(key) {
   );
 
   this.notify(key);
+}
+
+MockClient.prototype.lpush = function() {
+  this._pushCommon(
+    function(list, value) {
+      list.unshift(value);
+    },
+    arguments
+  );
+};
+
+
+MockClient.prototype.rpush = function() {
+  this._pushCommon(
+    function(list, value) {
+      list.push(value);
+    },
+    arguments
+  );
 };
 
 function normalizeIndex(idx, len) {
   return idx >= 0 ? idx : len + idx;
 }
+
+MockClient.prototype.ltrim = function(key, first, last, callback) {
+  var val = this.db[key];
+  if (val !== null && val !== undefined) {
+    if (!(val instanceof Array)) {
+      callback(new Error('Error: ERR Operation against a key holding the wrong kind of value'));
+      return;
+    }
+    first = normalizeIndex(first, val.length);
+    last = normalizeIndex(last, val.length);
+    this.db[key] = val.slice(first, last + 1);
+    callback(null, 'OK');
+  } else {
+    callback(new Error(), null);
+  }
+};
 
 MockClient.prototype.lrange = function(key, first, last, callback) {
   var val = this.db[key];
@@ -237,7 +272,7 @@ MockClient.prototype._multiPairedCommand = function(args, worker, reporter) {
   }
 };
 
-MockClient.prototype.hset = function(key, field, value, callback) {
+MockClient.prototype._hset = function(key, field, value, callback) {
   var alreadyExists = 0;
   this._multiPairedCommand(
     arguments,
@@ -247,6 +282,18 @@ MockClient.prototype.hset = function(key, field, value, callback) {
     },
     function() {return alreadyExists;}
   );
+};
+
+MockClient.prototype.hset = function(key, field, value, callback) {
+  this._hset(key, field, value, callback);
+};
+
+MockClient.prototype.hsetnx = function(key, field, value, callback) {
+  if (this.db[key] && this.db[key][field]) {
+    callback(null, 0); // already exists
+  } else {
+    this._hset(key, field, value, callback);
+  }
 };
 
 MockClient.prototype.hmset = function(key) {
@@ -504,6 +551,7 @@ function revisionPolicy(funcName, orgFunc) {
     break;
 
   case 'setnx':
+  case 'hsetnx':
     policy = incrementRange(0, 1, unlessZeroReply);
     break;
 
@@ -514,6 +562,8 @@ function revisionPolicy(funcName, orgFunc) {
   case 'set':
   case 'setex':
   case 'incrby':
+  case 'lpush':
+  case 'ltrim':
   case 'rpush':
   case 'sadd':
   case 'hset':

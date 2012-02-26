@@ -10,24 +10,25 @@
     <!-- https://github.com/mrdoob/stats.js -->
     <script src="vendor/three.js/Stats.js"></script>
 
-    <script src="vendor/threex/THREEx.FullScreen.js"></script>
-    <script src="vendor/threex/THREEx.WindowResize.js"></script>
     <script src="vendor/jquery-1.7.1.min.js"></script>
     <script src="vendor/Tween.js"></script>
     <script src="vendor/socket.io-client/socket.io.min.js"></script>
     <script src="vendor/underscore-min.js"></script>
+    <script src="vendor/mustache.min.js"></script>
     <script src="js/math.js"></script>
     <script src="js/controller.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/logging.js"></script>
 
     <link  href="css/main.css" rel="stylesheet"/>
   </head>
   <body>
     <!-- three.js container -->
     <div id="container"></div>
-    <div id="inlineDoc"></div>
 
     <script type="text/javascript">
-      var stats, scene, renderer, camera;
+
+      var stats, scene, renderer, camera, guiEvents = new events.EventEmitter();
 
       if (!init()) {
         TWEEN.start();
@@ -36,80 +37,9 @@
 
       // init the scene
       function init(){
-        if (Detector.webgl) {
-          renderer = new THREE.WebGLRenderer({
-            antialias: true,	// to get smoother output
-            preserveDrawingBuffer: true	// to allow screenshot
-          });
-          renderer.setClearColorHex(0xBBBBBB, 1);
-        // uncomment if webgl is required
-        //}else{
-        //	Detector.addGetWebGLMessage();
-        //	return true;
-        } else {
-          renderer	= new THREE.CanvasRenderer();
-        }
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('container').appendChild(renderer.domElement);
-
-        // add Stats.js - https://github.com/mrdoob/stats.js
-        stats = new Stats();
-        stats.domElement.style.position	= 'absolute';
-        stats.domElement.style.bottom	= '0px';
-        document.body.appendChild( stats.domElement );
-
-        // create a scene
-        scene = new THREE.Scene();
-
-        // put a camera in the scene
-        camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(0, 5, 5);
-        camera.lookAt(new THREE.Vector3());
-        scene.add(camera);
-
-        // transparently support window resize
-        THREEx.WindowResize.bind(renderer, camera);
-        // allow 'p' to make screenshot
-        //THREEx.Screenshot.bindKey(renderer);
-
-        // allow 'f' to go fullscreen where this feature is supported
-        if (THREEx.FullScreen.available()) {
-          THREEx.FullScreen.bindKey();		
-          document.getElementById('inlineDoc').innerHTML	+= "- <i>f</i> for fullscreen";
-        }
-
-        (function setupGround() {
-          var geometry = new THREE.PlaneGeometry(100, 100),
-              material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
-              mesh = new THREE.Mesh(geometry, material);
-
-          mesh.rotation.x = -0.5 * Math.PI;
-          mesh.position.y = -0.5;
-          scene.add(mesh);
-
-          controller.createClient(io.connect(), localStorage, scene, function(client, localAvatar) {
-            $('body').on('click', function(ev) {
-              var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
-                  mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
-                  vector = new THREE.Vector3(mouseX, mouseY, -1),
-                  projector = new THREE.Projector();
-
-              projector.unprojectVector(vector, camera);
-              vector.subSelf(camera.position).normalize();
-
-              var moveTo = math.intersectRayAndPlane(
-                camera.position, vector,
-                math.plane(
-                  math.v3(0, 0.5, 0), math.v3(0, 1, 0)
-                )
-              );
-
-              localAvatar.move(moveTo);
-              client.move(moveTo);
-            });
-          });
-
-        })();
+        setupEnv();
+        setupGround();
+        setupClient();
       }
 
       // animation loop
@@ -131,6 +61,192 @@
         // actually render the scene
         renderer.render(scene, camera);
       }
+
+      //
+      // setuppers
+      //
+      function setupEnv() {
+        if (Detector.webgl) {
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,	// to get smoother output
+            preserveDrawingBuffer: true	// to allow screenshot
+          });
+          renderer.setClearColorHex(0xBBBBBB, 1);
+        // uncomment if webgl is required
+        //}else{
+        //	Detector.addGetWebGLMessage();
+        //	return true;
+        } else {
+          renderer	= new THREE.CanvasRenderer();
+        }
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // add Stats.js - https://github.com/mrdoob/stats.js
+        stats = new Stats();
+        stats.domElement.style.position	= 'absolute';
+        stats.domElement.style.bottom	= '0px';
+        document.body.appendChild(stats.domElement);
+
+        // create a scene
+        scene = new THREE.Scene();
+
+        // put a camera in the scene
+        camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
+        camera.position.set(0, 5, 5);
+        camera.lookAt(new THREE.Vector3());
+        scene.add(camera);
+      }
+
+      function setupGround() {
+        var geometry = new THREE.PlaneGeometry(100, 100),
+            material = new THREE.MeshBasicMaterial({color: 0xFFFFFF}),
+            mesh = new THREE.Mesh(geometry, material);
+
+        mesh.rotation.x = -0.5 * Math.PI;
+        mesh.position.y = -0.5;
+        scene.add(mesh);
+      }
+
+      function setupToolbox(entity, avatars, hearedBeforeLogin) {
+        function resolveName(user) {
+          return user && user in avatars && avatars[user].entity.name || 'unknown';
+        }
+
+        var params = _.extend(_.clone(entity), {name: resolveName(entity.id)}),
+            $toolbox = $(Mustache.to_html($('#toolbox-template').html(), params));
+
+        var _logger = new logging.Logger(entity.id, $toolbox.find('#logs'));
+        guiEvents.removeAllListeners('hear');
+        guiEvents.on('hear', function(msg) {
+          msg.name = resolveName(msg.user);
+          _logger.push(msg);
+        });
+        _.each(hearedBeforeLogin, function(msg) {
+          guiEvents.emit('hear', msg);
+        });
+
+        $('body').append($toolbox);
+      }
+
+      function setupClient() {
+        var hearedBeforeLogin = [];
+        guiEvents.on('hear', function(msg) {
+          hearedBeforeLogin.push(msg);
+        });
+
+        controller.login(
+            io.connect(),
+            localStorage,
+            scene,
+            guiEvents,
+            function(localAvatar, avatars) {
+              setupToolbox(localAvatar.entity, avatars, hearedBeforeLogin);
+
+              var projector = new THREE.Projector();
+              function move(ev) {
+                var mouseX = +(ev.clientX / window.innerWidth) * 2 - 1,
+                    mouseY = -(ev.clientY / window.innerHeight) * 2 + 1,
+                    vector = new THREE.Vector3(mouseX, mouseY, -1);
+
+                projector.unprojectVector(vector, camera);
+                vector.subSelf(camera.position).normalize();
+
+                var moveTo = math.intersectRayAndPlane(
+                  camera.position, vector,
+                  math.plane(
+                    math.v3(0, 0.5, 0), math.v3(0, 1, 0)
+                  )
+                );
+
+                localAvatar.move(moveTo);
+                guiEvents.emit('move', moveTo);
+              }
+              $('body').on('click', move).on('touchstart', function(e) {
+                move(e.originalEvent.touches[0]);
+              });
+            }
+        );
+      }
+
+      //
+      // event handlers
+      //
+      function say() {
+        if (event.keyCode === 10 || event.keyCode === 13) {
+          var $this = $(event.target);
+          guiEvents.emit('say', $this.val());
+          $this.val('');
+        }
+      }
+
+      function changeName() {
+        if (event.keyCode === 10 || event.keyCode === 13) {
+          var $this = $(event.target);
+          guiEvents.emit('changeName', $this.val());
+          $('#name-header').html('name:');
+        }
+      }
+
+      function showAvatarUrl() {
+        var $this = $(event.target),
+            $avatarUrlInput = $(Mustache.to_html($('#avatar-url-template').html(), {
+              avatar: $this.attr('src')
+            }));
+
+        $this.next().after($avatarUrlInput);
+        $avatarUrlInput.fadeIn();
+      }
+
+      function changeAvatar() {
+        if (event.keyCode === 10 || event.keyCode === 13) {
+          var $this = $(event.target);
+          guiEvents.emit('changeAvatar', $this.val());
+          $this.fadeOut();
+        }
+      }
+
+      function kill() {
+        event.stopPropagation();
+      }
+
+    </script>
+
+    <script id='toolbox-template' type='text/html'>
+      <div id='toolbox' onclick='javascript:kill()' ontouchstart='javascript:kill()'>
+        <img id='face' src='{{avatar}}'> </img>
+        <span class='triangle-border left'><input type='text' value='hello, everyone' onkeypress='javascript:say()'></input></span>
+        <div class='detail name'>
+          <span id='name-header'>
+            {{#isInitialName}}
+            <b>change your name!</b>
+            {{/isInitialName}}
+            {{^isInitialName}}
+            name
+            {{/isInitialName}}
+            :
+          </span>
+          <input type='text' value='{{name}}' onkeypress='javascript:changeName()'></input>
+        </div>
+        <div class='detail'>id: {{id}}</div>
+
+        <hr> </hr>
+
+        <div id='logs'> </div>
+      </div>
+    </script>
+
+    <script id='avatar-url-template' type='text/html'>
+      <div><input type='text' value='{{avatar}}' onkeypress='javascript:changeAvatar()'></input></div>
+    </script>
+
+    <script id='log-template' type='text/html'>
+      {{#name}}
+        <p class='detail'>{{name}}: {{message}}</p>
+      {{/name}}
+      {{^name}}
+        <p class='detail'>{{message}}</p>
+      {{/name}}
     </script>
   </body>
 </html>
