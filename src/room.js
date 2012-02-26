@@ -1,6 +1,8 @@
 var hat = require('hat'),
     ROOM = 'room:default:room';
 
+exports.KEY = ROOM;
+
 function accountKey(id) {
   return 'account:' + id + ':entity';
 }
@@ -69,7 +71,7 @@ function loadEntity(id, socket, db) {
   });
 }
 
-// Entities was left abandoned in the ROOM when deploy, so recover by this
+// Avatars are left abandoned in the ROOM after deploy, so recover by this function
 function recoverEntitiesFromRoom(db) {
   db.hgetall(ROOM, function(err, kvs) {
     for (var id in kvs) {

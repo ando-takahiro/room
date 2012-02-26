@@ -206,4 +206,29 @@ describe('login in room', function() {
 
     sockets.emit('connection', pair.server);
   });
+
+  it('creates another account if specified account is in room', function(done) {
+    var entity = {
+          id: 'userId0',
+          x: 123,
+          y: 456,
+          z: 789,
+          avatar: 'avatar123.png'
+        },
+        entityStr = JSON.stringify(entity);
+
+    db.set('account:userId0:entity', entityStr);
+    db.hset(room.KEY, entity.id, entityStr);
+
+    sockets.on('connection', function() {
+      pair.client.on('welcome', function(message) {
+        expect(message.you).not.to.eql(entity);
+        done();
+      });
+
+      pair.client.emit('login', 'userId0');
+    });
+
+    sockets.emit('connection', pair.server);
+  });
 });
