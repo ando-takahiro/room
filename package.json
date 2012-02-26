@@ -7,16 +7,16 @@
     "type": "git",
     "url": "git://github.com/ando-takahiro/room.git"
   },
-  "main": "app.js",
-  "engines": {
-    "node": "~0.6.1"
-  },
+  "main": "server.js",
   "dependencies": {
     "express": "*",
     "socket.io": "*",
     "redis": "*",
-    "hat": "*",
-    "authom": "*"
+    "hat": "*"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "mocha": "*",
+    "expect.js": "*",
+    "sinon": "*",
+  }
 }
