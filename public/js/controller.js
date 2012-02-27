@@ -1,8 +1,11 @@
 var controller = (function() {
   var exports = {},
       avatars = {},
-      MOVE_DURATION = 100,
-      USER_ID_KEY = 'userId';
+      MOVE_DURATION = 500,
+      USER_ID_KEY = 'userId',
+      INITIAL_XZ_RADIUS = 3,
+      INITIAL_Y = 8,
+      INITIAL_BOUND_DURATION = 2000;
 
   exports.USER_ID_KEY = USER_ID_KEY;
 
@@ -18,18 +21,24 @@ var controller = (function() {
         }),
         mesh = new THREE.Mesh(geometry, material);
 
-    this.tween = new TWEEN.Tween(mesh.position);
     this.entity = _.clone(entity);
     this.mesh = mesh;
-    mesh.position.x = entity.x;
-    mesh.position.y = entity.y;
-    mesh.position.z = entity.z;
+    var theta = (2 * Math.random() - 1) * Math.PI;
+    mesh.position.x = entity.x + INITIAL_XZ_RADIUS * Math.cos(theta);
+    mesh.position.y = entity.y + INITIAL_Y;
+    mesh.position.z = entity.z + INITIAL_XZ_RADIUS * Math.sin(theta);
+    mesh.rotation.y = 3 * Math.PI * Math.random();
+    mesh.doubleSided = true;
+
+    (new TWEEN.Tween(mesh.position)).to({y: entity.y}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Bounce.EaseOut).start();
+    (new TWEEN.Tween(mesh.position)).to({x: entity.x, z: entity.z}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Quartic.EaseInOut).start();
+    (new TWEEN.Tween(mesh.rotation)).to({y: 0}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Back.EaseOut).start();
 
     scene.add(mesh);
   }
 
   Avatar.prototype.move = function(position) {
-    this.tween.to(position, MOVE_DURATION).start();
+    (new TWEEN.Tween(this.mesh.position)).to(position, MOVE_DURATION).easing(TWEEN.Easing.Quartic.EaseInOut).start();
   };
 
   Avatar.prototype.leave = function(position) {
