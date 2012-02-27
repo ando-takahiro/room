@@ -17,6 +17,7 @@ body {
 
 #toolbox input {
   border: none;
+  -webkit-appearance: none;
 }
 
 #face {
