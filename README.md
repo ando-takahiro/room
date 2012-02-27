@@ -18,10 +18,11 @@ This provides an experimental 3D virtual space using node.js, webgl, redis, sock
 ## DB
 
  * now using [Redis](http://redis.io/)
- * only 2 schemas
+ * only 3 schemas
    * **room:default:room** key contains active users in the room
+   * **room:default:chat** key contains chat log
    * **account:[user-id]:entity** key contains last status of user
- * stores avatar(entity) information as JSON string
+ * store as JSON string
 
 ## Important files and directories
 
