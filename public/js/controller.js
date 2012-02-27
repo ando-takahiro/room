@@ -31,14 +31,14 @@ var controller = (function() {
     mesh.doubleSided = true;
 
     (new TWEEN.Tween(mesh.position)).to({y: entity.y}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Bounce.EaseOut).start();
-    (new TWEEN.Tween(mesh.position)).to({x: entity.x, z: entity.z}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Quartic.EaseInOut).start();
+    (new TWEEN.Tween(mesh.position)).to({x: entity.x, z: entity.z}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Quadratic.EaseInOut).start();
     (new TWEEN.Tween(mesh.rotation)).to({y: 0}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Back.EaseOut).start();
 
     scene.add(mesh);
   }
 
   Avatar.prototype.move = function(position) {
-    (new TWEEN.Tween(this.mesh.position)).to(position, MOVE_DURATION).easing(TWEEN.Easing.Quartic.EaseInOut).start();
+    (new TWEEN.Tween(this.mesh.position)).to(position, MOVE_DURATION).easing(TWEEN.Easing.Quadratic.EaseInOut).start();
   };
 
   Avatar.prototype.leave = function(position) {
