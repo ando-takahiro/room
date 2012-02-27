@@ -13,6 +13,8 @@ body {
   position: absolute;
   left: 10px;
   top: 10px;
+  width: 11em;
+  word-break: break-all;
 }
 
 #toolbox input {
@@ -33,13 +35,16 @@ body {
   text-decoration: underline;
 }
 
-#logs {
-  max-height: 10em;
-  overflow: scroll;
+.name input {
+  width: 8em;
 }
 
-hr {
-  border-width: 1px;
+#logs {
+  overflow: scroll;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: black;
+  max-height: 5em;
 }
 
 /* ------------------------------------------

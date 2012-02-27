@@ -218,19 +218,15 @@
         <div class='detail name'>
           <span id='name-header'>
             {{#isInitialName}}
-            <b>change your name!</b>
+            <b>change name -&gt;</b>
             {{/isInitialName}}
             {{^isInitialName}}
-            name
+            name:
             {{/isInitialName}}
-            :
           </span>
           <input type='text' value='{{name}}' onkeypress='javascript:changeName()'></input>
         </div>
-        <div class='detail'>id: {{id}}</div>
-
-        <hr> </hr>
-
+        <!-- <div class='detail'>id: {{id}}</div> -->
         <div id='logs'> </div>
       </div>
     </script>
