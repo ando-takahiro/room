@@ -204,7 +204,7 @@
         }
       }
 
-      function showAvatarUrl() {
+      function toggleAvatarUrl() {
         var $avatarURLInput = $('#avatar-url');
         if ($avatarURLInput.length === 0) {
           var $this = $(event.target);
@@ -225,7 +225,14 @@
         return regexp.test(s);
       }
 
-      function changeAvatar() {
+      function changeAvatar(avatar) {
+        guiEvents.emit('changeAvatar', avatar);
+        $('#face').attr('src', avatar);
+        $('#avatar-url').fadeOut().queue(function(){$(this).remove();});
+        $('.initial-avatar').fadeOut().queue(function(){$(this).remove();});
+      }
+
+      function changeAvatarByEditBox() {
         if (event.keyCode === 10 || event.keyCode === 13) {
           var $this = $(event.target),
               avatar = $this.val();
@@ -239,11 +246,7 @@
             alert('your avatar URL is too long.');
             return;
           }
-
-          guiEvents.emit('changeAvatar', avatar);
-          $('#face').attr('src', avatar);
-          $('#avatar-url').fadeOut().queue(function(){$(this).remove();});
-          $('.initial-avatar').fadeOut().queue(function(){$(this).remove();});
+          changeAvatar(avatar);
         }
       }
 
@@ -251,6 +254,25 @@
         event.stopPropagation();
       }
 
+      function jsonFlickrFeed(response){
+          if (response.items.length > 10) {
+            response.items.length = 10;
+          }
+          var $flickrFeed = $(Mustache.to_html($('#flickr-feed-template').html(), response));
+          $flickrFeed.fadeIn();
+          $('#avatar-url').append($flickrFeed);
+      }
+
+      function toggleFlickrFeed() {
+        var $flickrFeed = $('.flickr-feed');
+        if ($flickrFeed.length === 0) {
+          var script = document.createElement('script');
+          script.src = 'http://api.flickr.com/services/feeds/photos_public.gne?format=json';
+          $('body').append(script);
+        } else {
+          $flickrFeed.fadeOut().queue(function(){$(this).remove();});
+        }
+      }
     </script>
 
     <script id='toolbox-template' type='text/html'>
@@ -259,7 +281,7 @@
         <p class='detail initial-avatar'>↓click 'face' to change avatar</p>
         {{/isInitialAvatar}}
 
-        <img id='face' src='{{avatar}}' onclick='javascript:showAvatarUrl()'> </img>
+        <img id='face' src='{{avatar}}' onclick='javascript:toggleAvatarUrl()'> </img>
         <span class='triangle-border left'><input type='text' value='hello, everyone' onkeypress='javascript:say()'></input></span>
 
         <div class='detail editable'>
@@ -271,7 +293,18 @@
     </script>
 
     <script id='avatar-url-template' type='text/html'>
-      <div class='detail editable' id='avatar-url'>avatar:<input type='text' value='{{avatar}}' onkeypress='javascript:changeAvatar()'></input></div>
+      <div class='detail editable' id='avatar-url'>
+        avatar:<input type='text' value='{{avatar}}' onkeypress='javascript:changeAvatarByEditBox()'></input>
+        <img src='images/flickr-32x32.png' onclick='javascript:toggleFlickrFeed()'> </img>
+      </div>
+    </script>
+
+    <script id='flickr-feed-template' type='text/html'>
+      <ul class='flickr-feed popup'>
+      {{#items}}
+      <li><img src='{{media.m}}' onclick='javascript:changeAvatar("{{media.m}}")'></img></li>
+      {{/items}}
+      </ul>
     </script>
 
     <script id='log-template' type='text/html'>

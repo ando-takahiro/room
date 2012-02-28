@@ -1,3 +1,4 @@
+// based on https://github.com/horaci/node-mitm-proxy
 var url = require('url'),
     util = require('util'),
     protocols = {

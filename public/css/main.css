@@ -38,7 +38,12 @@ body {
 }
 
 .editable input {
-  width: 13em;
+  width: 10em;
+}
+
+.editable img {
+  width: 1em;
+  height: 1em;
 }
 
 #logs {
@@ -47,6 +52,22 @@ body {
   border-top-width: 1px;
   border-top-color: black;
   max-height: 5em;
+}
+
+.popup {
+  position: absolute;
+  z-index: 100;
+  overflow: scroll;
+  max-height: 500px;
+}
+
+.popup img {
+  width: 100px;
+  height: 100px;
+}
+
+.popup li {
+  list-style: none;
 }
 
 /* ------------------------------------------
