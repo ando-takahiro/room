@@ -24,15 +24,14 @@ var controller = (function() {
 
     this.entity = _.clone(entity);
     this.mesh = mesh;
+    var theta = (2 * Math.random() - 1) * Math.PI;
+    mesh.position.x = entity.x + INITIAL_XZ_RADIUS * Math.cos(theta);
+    mesh.position.y = entity.y + INITIAL_Y;
+    mesh.position.z = entity.z + INITIAL_XZ_RADIUS * Math.sin(theta);
+    mesh.rotation.y = 3 * Math.PI * Math.random();
+    mesh.doubleSided = true;
 
     setTimeout(function() {
-      var theta = (2 * Math.random() - 1) * Math.PI;
-      mesh.position.x = entity.x + INITIAL_XZ_RADIUS * Math.cos(theta);
-      mesh.position.y = entity.y + INITIAL_Y;
-      mesh.position.z = entity.z + INITIAL_XZ_RADIUS * Math.sin(theta);
-      mesh.rotation.y = 3 * Math.PI * Math.random();
-      mesh.doubleSided = true;
-
       (new TWEEN.Tween(mesh.position)).to({y: entity.y}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Bounce.EaseOut).start();
       (new TWEEN.Tween(mesh.position)).to({x: entity.x, z: entity.z}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Quadratic.EaseInOut).start();
       (new TWEEN.Tween(mesh.rotation)).to({y: 0}, INITIAL_BOUND_DURATION).easing(TWEEN.Easing.Back.EaseOut).start();
@@ -77,6 +76,7 @@ var controller = (function() {
             id = message.you.id;
 
         gui.on('changeName', function(name) {
+          localAvatar.entity.name = name;
           socket.emit('changeName', name);
         });
 
@@ -120,8 +120,16 @@ var controller = (function() {
         socket.on('leave', function(id) {
           var avatar = avatars[id];
           if (avatar) {
-            avatars[id].leave();
+            avatar.leave();
             delete avatars[id];
+          }
+        });
+
+        socket.on('updateName', function(message) {
+          var avatar = avatars[message.user];
+          if (avatar) {
+            avatar.entity.name = message.name;
+            gui.emit('updateName', message.user);
           }
         });
       }

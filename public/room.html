@@ -17,7 +17,6 @@
     <script src="js/math.js"></script>
     <script src="js/controller.js"></script>
     <script src="js/events.js"></script>
-    <script src="js/logging.js"></script>
 
     <link  href="css/main.css" rel="stylesheet"/>
   </head>
@@ -113,14 +112,23 @@
         }
 
         var params = _.extend(_.clone(entity), {name: resolveName(entity.id)}),
-            $toolbox = $(Mustache.to_html($('#toolbox-template').html(), params));
+            $toolbox = $(Mustache.to_html($('#toolbox-template').html(), params)),
+            $logs = $toolbox.find('#logs'),
+            logTemplate = $('#log-template').html();
 
-        var _logger = new logging.Logger(entity.id, $toolbox.find('#logs'));
-        guiEvents.removeAllListeners('hear');
-        guiEvents.on('hear', function(msg) {
-          msg.name = resolveName(msg.user);
-          _logger.push(msg);
+        guiEvents.on('hear', function(message) {
+          message.name = resolveName(message.user);
+          var $rendered = $(Mustache.to_html(logTemplate, message));
+          $rendered.addClass('chat-' + message.user);
+          $logs.prepend($rendered);
         });
+
+        guiEvents.on('updateName', function(id) {
+          id = id || entity.id;
+          $logs.find('.chat-' + id).find('.name').html(resolveName(id));
+        });
+
+        // initialize chat log by hearedBeforeLogin
         _.each(hearedBeforeLogin, function(msg) {
           guiEvents.emit('hear', msg);
         });
@@ -140,6 +148,7 @@
             scene,
             guiEvents,
             function(localAvatar, avatars) {
+              guiEvents.removeAllListeners('hear');
               setupToolbox(localAvatar.entity, avatars, hearedBeforeLogin);
 
               var projector = new THREE.Projector();
@@ -181,8 +190,11 @@
 
       function changeName() {
         if (event.keyCode === 10 || event.keyCode === 13) {
-          var $this = $(event.target);
-          guiEvents.emit('changeName', $this.val());
+          var $this = $(event.target),
+              name = $this.val();
+
+          guiEvents.emit('changeName', name);
+          guiEvents.emit('updateName');
           $('#name-header').html('name:');
         }
       }
@@ -237,10 +249,10 @@
 
     <script id='log-template' type='text/html'>
       {{#name}}
-        <p class='detail'>{{name}}: {{message}}</p>
+        <p class='detail'><span class='name'>{{name}}</span>: <span class='message'>{{message}}</span></p>
       {{/name}}
       {{^name}}
-        <p class='detail'>{{message}}</p>
+        <p class='detail'><span class='message'>{{message}}</span></p>
       {{/name}}
     </script>
   </body>

@@ -34,7 +34,7 @@ MockSocket.makePair = function() {
     server: new MockSocket(serverEmitter, clientEmitter),
     client: new MockSocket(clientEmitter, serverEmitter)
   };
-}
+};
 
 //
 // local storage mock
@@ -88,6 +88,9 @@ describe('controller.login', function() {
 
   afterEach(function() {
     THREE.ImageUtils.loadTexture.restore();
+    if ('restore' in Math.random) {
+      Math.random.restore();
+    }
   });
 
   it('uses "" at first time login', function(done) {
@@ -106,6 +109,10 @@ describe('controller.login', function() {
 
     expect(storage.getItem(controller.USER_ID_KEY)).to.be(null);
 
+    sinon.stub(Math, 'random', function() {
+      return 0;
+    });
+
     controller.login(
       sock.client,
       storage,
@@ -114,9 +121,9 @@ describe('controller.login', function() {
       function(localAvatar) {
         expect(storage.getItem('userId')).to.be(localAvatar.entity.id);
         var mesh = localAvatar.mesh;
-        expect(mesh.position.x).to.be(0.1);
-        expect(mesh.position.y).to.be(0);
-        expect(mesh.position.z).to.be(0.2);
+        expect(mesh.position.x).to.be(-2.9);
+        expect(mesh.position.y).to.be(8);
+        expect(mesh.position.z).to.be.within(0.19999, 0.20001);
         done();
       }
     );
@@ -297,7 +304,7 @@ describe('room events', function() {
   describe('changeName', function() {
     it('change name and broadcast', function(done) {
       var id;
-      pair.server.broadcast.on('changeName', function(msg) {
+      pair.server.broadcast.on('updateName', function(msg) {
         expect(msg).to.eql({user: id, name: 'foobared'});
         var entity = JSON.parse(db.db[room.MEMBERS_KEY][id]);
         expect(entity.name).to.be('foobared');
@@ -322,7 +329,7 @@ describe('room events', function() {
   describe('changeAvatar', function() {
     it('change avatar and broadcast', function(done) {
       var id;
-      pair.server.broadcast.on('changeAvatar', function(msg) {
+      pair.server.broadcast.on('updateAvatar', function(msg) {
         expect(msg).to.eql({user: id, avatar: 'dummy-url'});
         var entity = JSON.parse(db.db[room.MEMBERS_KEY][id]);
         expect(entity.avatar).to.be('dummy-url');

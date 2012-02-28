@@ -12,12 +12,13 @@ function accountKey(id) {
 
 function joinRoom(entity, socket, db) {
   var id = entity.id;
+
+  function save() {
+    db.hset(MEMBERS, id, JSON.stringify(entity));
+  }
+
   db.hsetnx(MEMBERS, id, JSON.stringify(entity), function(err, isSet) {
     if (isSet === 1) {
-      function save() {
-        db.hset(MEMBERS, id, JSON.stringify(entity));
-      }
-
       //
       // event handlers
       //
@@ -67,7 +68,7 @@ function joinRoom(entity, socket, db) {
         entity.avatar = avatar;
         entity.isInitialAvatar = false;
         save();
-        socket.broadcast.emit('changeAvatar', {
+        socket.broadcast.emit('updateAvatar', {
           user: id, avatar: avatar
         });
       });
@@ -79,7 +80,7 @@ function joinRoom(entity, socket, db) {
         entity.name = newName;
         entity.isInitialName = false;
         save();
-        socket.broadcast.emit('changeName', {
+        socket.broadcast.emit('updateName', {
           user: id, name: newName
         });
       });
@@ -108,7 +109,7 @@ function joinRoom(entity, socket, db) {
 }
 
 function newEntity(socket, db) {
-  var id = hat() + +(new Date()),
+  var id = hat() + (+(new Date())),
       entity = {
         id: id,
         x: Math.random(),
