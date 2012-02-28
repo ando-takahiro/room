@@ -24,19 +24,26 @@ body {
 
 #face {
   vertical-align: middle;
+  max-width: 2em;
   height: 2em;
+  overflow: hidden;
 }
 
 .detail {
   font-size: 0.5em;
 }
 
-.name:hover {
+.editable:hover {
   text-decoration: underline;
 }
 
-.name input {
-  width: 8em;
+.editable input {
+  width: 10em;
+}
+
+.editable img {
+  width: 1em;
+  height: 1em;
 }
 
 #logs {
@@ -45,6 +52,22 @@ body {
   border-top-width: 1px;
   border-top-color: black;
   max-height: 5em;
+}
+
+.popup {
+  position: absolute;
+  z-index: 100;
+  overflow: scroll;
+  max-height: 500px;
+}
+
+.popup img {
+  width: 100px;
+  height: 100px;
+}
+
+.popup li {
+  list-style: none;
 }
 
 /* ------------------------------------------

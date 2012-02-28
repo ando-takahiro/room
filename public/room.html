@@ -26,7 +26,10 @@
 
     <script type="text/javascript">
 
-      var stats, scene, renderer, camera, guiEvents = new events.EventEmitter();
+      var stats, scene, renderer, camera,
+          guiEvents = new events.EventEmitter(),
+          MAX_AVATAR_LEN = 100,
+          MAX_NAME_LEN = 10;
 
       if (!init()) {
         TWEEN.start();
@@ -107,17 +110,17 @@
       }
 
       function setupToolbox(entity, avatars, hearedBeforeLogin) {
-        function resolveName(user) {
-          return user && user in avatars && avatars[user].entity.name || 'unknown';
+        function resolve(user, member) {
+          return user && user in avatars && avatars[user].entity[member] || 'unknown';
         }
 
-        var params = _.extend(_.clone(entity), {name: resolveName(entity.id)}),
+        var params = _.extend(_.clone(entity), {name: resolve(entity.id, 'name')}),
             $toolbox = $(Mustache.to_html($('#toolbox-template').html(), params)),
             $logs = $toolbox.find('#logs'),
             logTemplate = $('#log-template').html();
 
         guiEvents.on('hear', function(message) {
-          message.name = resolveName(message.user);
+          message.name = resolve(message.user, 'name');
           var $rendered = $(Mustache.to_html(logTemplate, message));
           $rendered.addClass('chat-' + message.user);
           $logs.prepend($rendered);
@@ -125,7 +128,7 @@
 
         guiEvents.on('updateName', function(id) {
           id = id || entity.id;
-          $logs.find('.chat-' + id).find('.name').html(resolveName(id));
+          $logs.find('.chat-' + id).find('.name').html(resolve(id, 'name'));
         });
 
         // initialize chat log by hearedBeforeLogin
@@ -192,28 +195,58 @@
         if (event.keyCode === 10 || event.keyCode === 13) {
           var $this = $(event.target),
               name = $this.val();
-
-          guiEvents.emit('changeName', name);
-          guiEvents.emit('updateName');
-          $('#name-header').html('name:');
+          if (name.length <= MAX_NAME_LEN) {
+            guiEvents.emit('changeName', name);
+            guiEvents.emit('updateName');
+          } else {
+            alert('your name is too long.');
+          }
         }
       }
 
-      function showAvatarUrl() {
-        var $this = $(event.target),
-            $avatarUrlInput = $(Mustache.to_html($('#avatar-url-template').html(), {
-              avatar: $this.attr('src')
-            }));
+      function toggleAvatarUrl() {
+        var $avatarURLInput = $('#avatar-url');
+        if ($avatarURLInput.length === 0) {
+          var $this = $(event.target);
 
-        $this.next().after($avatarUrlInput);
-        $avatarUrlInput.fadeIn();
+          $avatarUrlInput = $(Mustache.to_html($('#avatar-url-template').html(), {
+            avatar: $this.attr('src')
+          }));
+          $avatarUrlInput.fadeIn();
+          $this.next().after($avatarUrlInput);
+        } else {
+          $avatarURLInput.fadeOut().queue(function(){$(this).remove();});
+        }
       }
 
-      function changeAvatar() {
+      // http://snippets.dzone.com/posts/show/452
+      function isUrl(s) {
+        var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
+        return regexp.test(s);
+      }
+
+      function changeAvatar(avatar) {
+        guiEvents.emit('changeAvatar', avatar);
+        $('#face').attr('src', avatar);
+        $('#avatar-url').fadeOut().queue(function(){$(this).remove();});
+        $('.initial-avatar').fadeOut().queue(function(){$(this).remove();});
+      }
+
+      function changeAvatarByEditBox() {
         if (event.keyCode === 10 || event.keyCode === 13) {
-          var $this = $(event.target);
-          guiEvents.emit('changeAvatar', $this.val());
-          $this.fadeOut();
+          var $this = $(event.target),
+              avatar = $this.val();
+
+          if (!isUrl(avatar)) {
+            alert('invalid URL');
+            return;
+          }
+
+          if (avatar.length > MAX_AVATAR_LEN) {
+            alert('your avatar URL is too long.');
+            return;
+          }
+          changeAvatar(avatar);
         }
       }
 
@@ -221,22 +254,38 @@
         event.stopPropagation();
       }
 
+      function jsonFlickrFeed(response){
+          if (response.items.length > 10) {
+            response.items.length = 10;
+          }
+          var $flickrFeed = $(Mustache.to_html($('#flickr-feed-template').html(), response));
+          $flickrFeed.fadeIn();
+          $('#avatar-url').append($flickrFeed);
+      }
+
+      function toggleFlickrFeed() {
+        var $flickrFeed = $('.flickr-feed');
+        if ($flickrFeed.length === 0) {
+          var script = document.createElement('script');
+          script.src = 'http://api.flickr.com/services/feeds/photos_public.gne?format=json';
+          $('body').append(script);
+        } else {
+          $flickrFeed.fadeOut().queue(function(){$(this).remove();});
+        }
+      }
     </script>
 
     <script id='toolbox-template' type='text/html'>
       <div id='toolbox' onclick='javascript:kill()' ontouchstart='javascript:kill()'>
-        <img id='face' src='{{avatar}}'> </img>
+        {{#isInitialAvatar}}
+        <p class='detail initial-avatar'>↓click 'face' to change avatar</p>
+        {{/isInitialAvatar}}
+
+        <img id='face' src='{{avatar}}' onclick='javascript:toggleAvatarUrl()'> </img>
         <span class='triangle-border left'><input type='text' value='hello, everyone' onkeypress='javascript:say()'></input></span>
-        <div class='detail name'>
-          <span id='name-header'>
-            {{#isInitialName}}
-            <b>change name -&gt;</b>
-            {{/isInitialName}}
-            {{^isInitialName}}
-            name:
-            {{/isInitialName}}
-          </span>
-          <input type='text' value='{{name}}' onkeypress='javascript:changeName()'></input>
+
+        <div class='detail editable'>
+          name:<input type='text' value='{{name}}' onkeypress='javascript:changeName()'></input>
         </div>
         <!-- <div class='detail'>id: {{id}}</div> -->
         <div id='logs'> </div>
@@ -244,7 +293,18 @@
     </script>
 
     <script id='avatar-url-template' type='text/html'>
-      <div><input type='text' value='{{avatar}}' onkeypress='javascript:changeAvatar()'></input></div>
+      <div class='detail editable' id='avatar-url'>
+        avatar:<input type='text' value='{{avatar}}' onkeypress='javascript:changeAvatarByEditBox()'></input>
+        <img src='images/flickr-32x32.png' onclick='javascript:toggleFlickrFeed()'> </img>
+      </div>
+    </script>
+
+    <script id='flickr-feed-template' type='text/html'>
+      <ul class='flickr-feed popup'>
+      {{#items}}
+      <li><img src='{{media.m}}' onclick='javascript:changeAvatar("{{media.m}}")'></img></li>
+      {{/items}}
+      </ul>
     </script>
 
     <script id='log-template' type='text/html'>

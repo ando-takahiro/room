@@ -1,7 +1,9 @@
 var hat = require('hat'),
     MEMBERS = 'room:default:members',
     CHAT = 'room:default:chat',
-    CHAT_MAX_LOG = 100;
+    CHAT_MAX_LOG = 100,
+    MAX_AVATAR_LEN = 100,
+    MAX_NAME_LEN = 10;
 
 exports.MEMBERS_KEY = MEMBERS;
 exports.CHAT_KEY = CHAT;
@@ -62,27 +64,25 @@ function joinRoom(entity, socket, db) {
       });
 
       socket.on('changeAvatar', function(avatar) {
-        if (avatar.length > 100) {
-          avatar.length = 100;
+        if (avatar.length <= MAX_AVATAR_LEN) {
+          entity.avatar = avatar;
+          entity.isInitialAvatar = false;
+          save();
+          socket.broadcast.emit('updateAvatar', {
+            user: id, avatar: avatar
+          });
         }
-        entity.avatar = avatar;
-        entity.isInitialAvatar = false;
-        save();
-        socket.broadcast.emit('updateAvatar', {
-          user: id, avatar: avatar
-        });
       });
 
       socket.on('changeName', function(newName) {
-        if (newName.length > 10) {
-          newName.length = 10;
+        if (newName.length < MAX_NAME_LEN) {
+          entity.name = newName;
+          entity.isInitialName = false;
+          save();
+          socket.broadcast.emit('updateName', {
+            user: id, name: newName
+          });
         }
-        entity.name = newName;
-        entity.isInitialName = false;
-        save();
-        socket.broadcast.emit('updateName', {
-          user: id, name: newName
-        });
       });
 
       //
