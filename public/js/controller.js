@@ -15,8 +15,9 @@ var controller = (function() {
   //
   function Avatar(entity, scene) {
     var geometry = new THREE.PlaneGeometry(1, 1),
+        avatarURL = '/image-proxy?' + entity.avatar,
         material = new THREE.MeshBasicMaterial({
-          map: THREE.ImageUtils.loadTexture(entity.avatar),
+          map: THREE.ImageUtils.loadTexture(avatarURL),
           depthWrite: false,
           transparent: true
         }),
@@ -81,8 +82,9 @@ var controller = (function() {
         });
 
         gui.on('changeAvatar', function(avatar) {
+          localAvatar.entity.avatar = avatar;
+          localAvatar.mesh.material.map.image.src = '/image-proxy?' + avatar;
           socket.emit('changeAvatar', avatar);
-          localAvatar.mesh.material.map.image.src = avatar;
         });
 
         gui.on('move', function(position) {
@@ -130,6 +132,14 @@ var controller = (function() {
           if (avatar) {
             avatar.entity.name = message.name;
             gui.emit('updateName', message.user);
+          }
+        });
+
+        socket.on('updateAvatar', function(message) {
+          var avatar = avatars[message.user];
+          if (avatar) {
+            avatar.entity.avatar = message.avatar;
+            avatar.mesh.material.map.image.src = '/image-proxy?' + message.avatar;
           }
         });
       }

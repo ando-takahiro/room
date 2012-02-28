@@ -24,19 +24,21 @@ body {
 
 #face {
   vertical-align: middle;
+  max-width: 2em;
   height: 2em;
+  overflow: hidden;
 }
 
 .detail {
   font-size: 0.5em;
 }
 
-.name:hover {
+.editable:hover {
   text-decoration: underline;
 }
 
-.name input {
-  width: 8em;
+.editable input {
+  width: 13em;
 }
 
 #logs {
