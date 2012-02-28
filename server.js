@@ -8,7 +8,7 @@ var express = require('express'),
 
 db.on('ready', function() {
   app.get('/image-proxy', function(req, res) { // proxy for webgl
-    proxy(url.parse(req.url).search.substr(1), req, res);
+    proxy(url.parse(req.url).query, req, res);
   });
   app.use(express['static']('./public'));
   room.restore(io.sockets, db);

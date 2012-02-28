@@ -7,19 +7,27 @@ var url = require('url'),
     };
 
 module.exports = function(target, req, res) {
-  var state = {}, requestOpts = url.parse(target);
+  var state = {}, parsedUrl = url.parse(target);
 
-  if (requestOpts.protocol) {
-    var proxyReq = protocols[requestOpts.protocol].request(requestOpts);
+  if (parsedUrl.protocol) {
+    var reqHeaders = {};
+    for (var k in req.headers) {
+      reqHeaders[k] = req.headers[k];
+    }
+    reqHeaders.host = parsedUrl.host;
+    var options = {
+          host: parsedUrl.host,
+          port: parsedUrl.port,
+          method: 'GET',
+          path: parsedUrl.pathname
+        },
+        proxyReq = protocols[parsedUrl.protocol].request(options);
 
     proxyReq.on('response', function(proxyRes) {
       var headers = {};
-      for (var k in proxyReq.headers) {
-        headers[k] = proxyReq.headers[k];
+      for (var k in proxyRes.headers) {
+        headers[k] = proxyRes.headers[k];
       }
-      delete headers.via;
-      delete headers['x-cache'];
-      delete headers['x-cache-lookup'];
 
       //Pump the response of the server to the client
       res.writeHead(proxyRes.statusCode, headers);
