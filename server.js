@@ -1,6 +1,7 @@
 var express = require('express'),
-    app = express.createServer(),
-    io = require('socket.io').listen(app),
+    app = express(),
+    server = require('http').createServer(app),
+    io = require('socket.io').listen(server),
     db = require('redis').createClient(),
     url = require('url'),
     room = require('./src/room'),
@@ -12,7 +13,7 @@ db.on('ready', function() {
   });
   app.use(express['static']('./public'));
   room.restore(io.sockets, db);
-  app.listen(8080);
+  server.listen(8080);
 });
 
 db.on('error', function(e) {

@@ -450,15 +450,6 @@ function commandSpecs(it) {
       });
     });
 
-    it('passes {} if key does not exist', function(done, client) {
-      client.del('x');
-      client.hgetall('x', function(err, replies) {
-        expect(err).to.be(null);
-        expect(replies).to.eql({});
-        done();
-      });
-    });
-
     it('fails if key is not hash', function(done, client) {
       client.del('x');
       client.set('x', 'y');

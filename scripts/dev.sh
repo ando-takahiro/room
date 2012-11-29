@@ -1,1 +1,1 @@
-node-dev server.js
+node_modules/.bin/node-dev server.js

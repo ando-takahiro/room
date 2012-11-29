@@ -2,21 +2,25 @@
   "author": "ANDO Takahiro",
   "name": "room",
   "description": "3d avatar chat",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": {
     "type": "git",
     "url": "git://github.com/ando-takahiro/room.git"
   },
   "main": "server.js",
+  "scripts": {
+    "test": "node_modules/.bin/mocha"
+  },
   "dependencies": {
-    "express": "*",
-    "socket.io": "*",
-    "redis": "*",
-    "hat": "*"
+    "express": "3.0.3",
+    "socket.io": "0.9.11",
+    "redis": "0.8.2",
+    "hat": "0.0.3"
   },
   "devDependencies": {
-    "mocha": "*",
-    "expect.js": "*",
-    "sinon": "*"
+    "node-dev": "0.2.9",
+    "mocha": "1.7.2",
+    "expect.js": "0.2.0",
+    "sinon": "1.5.2"
   }
 }
