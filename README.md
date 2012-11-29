@@ -1,7 +1,5 @@
 # room - a 3D virtual space
 
-It runs on [node-ninja](http://room.node-ninja.com:8080/).
-
 ## Motivation
 
 This provides an experimental 3D virtual space using node.js, webgl, redis, socket.io. My goal is something like [UGC](http://en.wikipedia.org/wiki/User-generated_content) web space, for example [Minecraft](http://www.minecraft.net/) :)
