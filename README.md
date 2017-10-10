@@ -35,7 +35,7 @@ This provides an experimental 3D virtual space using node.js, webgl, redis, sock
 
 ## Testing strategy
 
- * now using [mocha](http://visionmedia.github.com/mocha/)
+ * now using [mocha](https://mochajs.org/)
    * browser side test is also mocha based (but it's tricky. see test/browser.js)
  * experimental redis mock
 
